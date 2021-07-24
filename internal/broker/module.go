@@ -7,6 +7,7 @@ import (
 
 type Module struct {
 	// TODO: Add required fields
+	closed bool
 }
 
 func NewModule() broker.Broker {
@@ -14,7 +15,14 @@ func NewModule() broker.Broker {
 }
 
 func (m Module) Close() error {
-	panic("implement me")
+	return m.close()
+}
+func (m *Module) close() error {
+	if m.closed {
+		return broker.ErrUnavailable
+	}
+	m.closed = true
+	return nil
 }
 
 func (m Module) Publish(ctx context.Context, subject string, msg broker.Message) (int, error) {
