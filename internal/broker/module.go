@@ -13,18 +13,18 @@ func NewModule() broker.Broker {
 	return &Module{}
 }
 
-func (m Module) Close() error {
+func (m *Module) Close() error {
 	panic("implement me")
 }
 
-func (m Module) Publish(ctx context.Context, subject string, msg broker.Message) (int, error) {
+func (m *Module) Publish(ctx context.Context, subject string, msg broker.Message) (int, error) {
 	panic("implement me")
 }
 
-func (m Module) Subscribe(ctx context.Context, subject string) (<-chan broker.Message, error) {
+func (m *Module) Subscribe(ctx context.Context, subject string) (<-chan broker.Message, error) {
 	panic("implement me")
 }
 
-func (m Module) Fetch(ctx context.Context, subject string, id int) (broker.Message, error) {
+func (m *Module) Fetch(ctx context.Context, subject string, id int) (broker.Message, error) {
 	panic("implement me")
 }
