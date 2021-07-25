@@ -23,6 +23,7 @@ type Topic struct {
 	Name        string
 	Subscribers []*Subscriber
 	Messages    map[int]broker.Message
+	IDs map[int]struct{}
 }
 
 func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
@@ -34,18 +35,20 @@ func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
 	return newSub.Channel
 }
 
-func (t *Topic) PublishMessage(msg broker.Message) {
+func (t *Topic) PublishMessage(msg broker.Message)int{
 	for _, sub := range t.Subscribers {
 		sub.publishMessage(msg)
 
 		//TODO: Can we add concurrency here?
 	}
+	messageId := MessageID.GetID()
+	t.IDs[messageId]=struct{}{}
+
 	if msg.Expiration != 0{
-		messageId := MessageID.GetID()
 		t.Messages[messageId] = msg
 		go utils.WatchForExpiration(t.Messages,messageId,msg.Expiration)
 	}
-
+	return messageId
 }
 
 func NewTopic(name string) *Topic {
@@ -54,6 +57,7 @@ func NewTopic(name string) *Topic {
 		Name:        name,
 		Subscribers: subscribers,
 		Messages:    map[int]broker.Message{},
+		IDs: map[int]struct{}{},
 	}
 }
 
