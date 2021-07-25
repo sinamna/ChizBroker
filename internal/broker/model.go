@@ -27,17 +27,22 @@ type Topic struct {
 	Subscribers []*Subscriber
 	Messages    map[int]broker.Message
 	IDs map[int]struct{}
+	subChannel chan *Subscriber
 }
 
-func (t *Topic) RegisterSubscriber(ctx context.Context, ch chan broker.Message) chan broker.Message {
+func (t *Topic) RegisterSubscriber(ctx context.Context, ch chan broker.Message){
 	newSub := &Subscriber{
 		Channel: ch,
 		Ctx:     ctx,
 	}
-	t.Subscribers = append(t.Subscribers, newSub)
-	return newSub.Channel
+	t.subChannel <- newSub
 }
 
+func (t *Topic) registerSub(){
+	for sub := range t.subChannel{
+		t.Subscribers = append(t.Subscribers, sub)
+	}
+}
 func (t *Topic) PublishMessage(msg broker.Message)int{
 	for _, sub := range t.Subscribers {
 		sub.publishMessage(msg)
@@ -61,8 +66,10 @@ func NewTopic(name string) *Topic {
 		Subscribers: subscribers,
 		Messages:    map[int]broker.Message{},
 		IDs: map[int]struct{}{},
+		subChannel: make(chan *Subscriber),
 	}
 }
+
 
 type AutoIncId struct{
 	id int
