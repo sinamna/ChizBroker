@@ -30,22 +30,27 @@ type Topic struct {
 	subChannel chan *Subscriber
 }
 
-func (t *Topic) RegisterSubscriber(ctx context.Context, ch chan broker.Message){
+func (t *Topic) RegisterSubscriber(ctx context.Context)chan broker.Message{
+	ch := make(chan broker.Message)
 	newSub := &Subscriber{
 		Channel: ch,
 		Ctx:     ctx,
 	}
 	t.subChannel <- newSub
+	return ch
 }
 
 func (t *Topic) registerSub(){
-	for sub := range t.subChannel{
-		t.Subscribers = append(t.Subscribers, sub)
+	for {
+		select{
+		case sub := <-t.subChannel:
+			t.Subscribers = append(t.Subscribers, sub)
+		}
 	}
 }
 func (t *Topic) PublishMessage(msg broker.Message)int{
 	for _, sub := range t.Subscribers {
-		sub.publishMessage(msg)
+		go sub.publishMessage(msg)
 
 		//TODO: Can we add concurrency here?
 	}
@@ -61,13 +66,15 @@ func (t *Topic) PublishMessage(msg broker.Message)int{
 
 func NewTopic(name string) *Topic {
 	subscribers := make([]*Subscriber, 0)
-	return &Topic{
+	newTopic :=&Topic{
 		Name:        name,
 		Subscribers: subscribers,
 		Messages:    map[int]broker.Message{},
 		IDs: map[int]struct{}{},
 		subChannel: make(chan *Subscriber),
 	}
+	go newTopic.registerSub()
+	return newTopic
 }
 
 
