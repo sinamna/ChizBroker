@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"therealbroker/internal/utils"
 	"therealbroker/pkg/broker"
 )
 var MessageID = AutoIncId{id: 1}
@@ -38,6 +39,11 @@ func (t *Topic) PublishMessage(msg broker.Message) {
 		sub.publishMessage(msg)
 
 		//TODO: Can we add concurrency here?
+	}
+	if msg.Expiration != 0{
+		messageId := MessageID.GetID()
+		t.Messages[messageId] = msg
+		go utils.WatchForExpiration(t.Messages,messageId,msg.Expiration)
 	}
 
 }
