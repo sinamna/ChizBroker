@@ -23,13 +23,22 @@ func (m *Module) Close() error {
 }
 
 func (m *Module) Publish(ctx context.Context, subject string, msg broker.Message) (int, error) {
-	panic("implement me")
+	if m.closed {
+		return -1, broker.ErrUnavailable
+	}
+	return 1,nil
 }
 
 func (m *Module) Subscribe(ctx context.Context, subject string) (<-chan broker.Message, error) {
-	panic("implement me")
+	if m.closed {
+		return nil, broker.ErrUnavailable
+	}
+	return nil, nil
 }
 
 func (m *Module) Fetch(ctx context.Context, subject string, id int) (broker.Message, error) {
-	panic("implement me")
+	if m.closed {
+		return broker.Message{}, broker.ErrUnavailable
+	}
+	return broker.Message{}, nil
 }
