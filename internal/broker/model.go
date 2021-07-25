@@ -4,13 +4,13 @@ import (
 	"context"
 	"therealbroker/pkg/broker"
 )
-
+var MessageID = AutoIncId{id: 1}
 type Subscriber struct {
 	Channel chan broker.Message
 	Ctx     context.Context
 }
 
-func (s *Subscriber) publishMessage(msg broker.Message)  {
+func (s *Subscriber) publishMessage(msg broker.Message) {
 	select {
 	case <-s.Ctx.Done():
 	default:
@@ -21,7 +21,7 @@ func (s *Subscriber) publishMessage(msg broker.Message)  {
 type Topic struct {
 	Name        string
 	Subscribers []*Subscriber
-	Messages    map[string]broker.Message
+	Messages    map[int]broker.Message
 }
 
 func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
@@ -32,16 +32,30 @@ func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
 	t.Subscribers = append(t.Subscribers, newSub)
 	return newSub.Channel
 }
+
 func (t *Topic) PublishMessage(msg broker.Message) {
-	for _, sub:= range t.Subscribers{
+	for _, sub := range t.Subscribers {
 		sub.publishMessage(msg)
+
+		//TODO: Can we add concurrency here?
 	}
+
 }
+
 func NewTopic(name string) *Topic {
 	subscribers := make([]*Subscriber, 0)
 	return &Topic{
 		Name:        name,
 		Subscribers: subscribers,
-		Messages:    map[string]broker.Message{},
+		Messages:    map[int]broker.Message{},
 	}
+}
+
+type AutoIncId struct{
+	id int
+}
+func (ai *AutoIncId) GetID()(id int){
+	id = ai.id
+	ai.id++
+	return
 }
