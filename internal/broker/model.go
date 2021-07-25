@@ -19,6 +19,9 @@ func (s *Subscriber) publishMessage(msg broker.Message) {
 	}
 }
 
+
+
+
 type Topic struct {
 	Name        string
 	Subscribers []*Subscriber
@@ -26,9 +29,9 @@ type Topic struct {
 	IDs map[int]struct{}
 }
 
-func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
+func (t *Topic) RegisterSubscriber(ctx context.Context, ch chan broker.Message) chan broker.Message {
 	newSub := &Subscriber{
-		Channel: make(chan broker.Message),
+		Channel: ch,
 		Ctx:     ctx,
 	}
 	t.Subscribers = append(t.Subscribers, newSub)
