@@ -5,40 +5,43 @@ import (
 	"therealbroker/pkg/broker"
 )
 
-type Subscriber struct{
+type Subscriber struct {
 	Channel chan broker.Message
-	Ctx context.Context
+	Ctx     context.Context
 }
-func(s *Subscriber) publishMessage(msg broker.Message)error{
-	select{
+
+func (s *Subscriber) publishMessage(msg broker.Message)  {
+	select {
 	case <-s.Ctx.Done():
-		return broker.ErrExpiredID
 	default:
-		s.Channel<-msg
-		return nil
+		s.Channel <- msg
 	}
 }
-type Topic struct{
-	Name string
+
+type Topic struct {
+	Name        string
 	Subscribers []*Subscriber
-	Messages map[string]broker.Message
+	Messages    map[string]broker.Message
 }
-func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message{
+
+func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
 	newSub := &Subscriber{
 		Channel: make(chan broker.Message),
-		Ctx: ctx,
+		Ctx:     ctx,
 	}
 	t.Subscribers = append(t.Subscribers, newSub)
 	return newSub.Channel
 }
-func(t *Topic) PublishMessage(msg broker.Message){
-
+func (t *Topic) PublishMessage(msg broker.Message) {
+	for _, sub:= range t.Subscribers{
+		sub.publishMessage(msg)
+	}
 }
-func NewTopic(name string)*Topic{
-	subscribers := make([]Subscriber,0)
+func NewTopic(name string) *Topic {
+	subscribers := make([]*Subscriber, 0)
 	return &Topic{
-		Name: name,
+		Name:        name,
 		Subscribers: subscribers,
-		Messages: map[string]broker.Message{},
+		Messages:    map[string]broker.Message{},
 	}
 }
