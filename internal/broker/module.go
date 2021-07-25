@@ -8,10 +8,14 @@ import (
 type Module struct {
 	// TODO: Add required fields
 	closed bool
+	Topics map[string]*Topic
 }
 
 func NewModule() broker.Broker {
-	return &Module{}
+	return &Module{
+		closed: false,
+		Topics: map[string]*Topic{},
+	}
 }
 
 func (m *Module) Close() error {
@@ -26,14 +30,23 @@ func (m *Module) Publish(ctx context.Context, subject string, msg broker.Message
 	if m.closed {
 		return -1, broker.ErrUnavailable
 	}
-	return 1,nil
+	topic, exists := m.Topics[subject]
+	if !exists {
+		topic = NewTopic(subject)
+		m.Topics[subject]=topic
+	}
+	id := topic.PublishMessage(msg)
+	return id,nil
 }
 
 func (m *Module) Subscribe(ctx context.Context, subject string) (<-chan broker.Message, error) {
 	if m.closed {
 		return nil, broker.ErrUnavailable
 	}
-	return nil, nil
+
+
+
+	return make(chan broker.Message), nil
 }
 
 func (m *Module) Fetch(ctx context.Context, subject string, id int) (broker.Message, error) {
