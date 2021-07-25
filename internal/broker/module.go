@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"log"
 	"therealbroker/pkg/broker"
 )
 
@@ -32,8 +33,7 @@ func (m *Module) Publish(ctx context.Context, subject string, msg broker.Message
 	}
 	topic, exists := m.Topics[subject]
 	if !exists {
-		topic = NewTopic(subject)
-		m.Topics[subject]=topic
+		log.Fatalln("invalid subject")
 	}
 	id := topic.PublishMessage(msg)
 	return id,nil
@@ -43,10 +43,14 @@ func (m *Module) Subscribe(ctx context.Context, subject string) (<-chan broker.M
 	if m.closed {
 		return nil, broker.ErrUnavailable
 	}
-
-
-
-	return make(chan broker.Message), nil
+	//channel := make(chan broker.Message)
+	topic, exists := m.Topics[subject]
+	if !exists {
+		topic = NewTopic(subject)
+		m.Topics[subject]=topic
+	}
+	channel:= topic.RegisterSubscriber(ctx)
+	return channel, nil
 }
 
 func (m *Module) Fetch(ctx context.Context, subject string, id int) (broker.Message, error) {
