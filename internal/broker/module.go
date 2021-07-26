@@ -2,7 +2,6 @@ package broker
 
 import (
 	"context"
-	"log"
 	"therealbroker/pkg/broker"
 )
 
@@ -33,7 +32,8 @@ func (m *Module) Publish(ctx context.Context, subject string, msg broker.Message
 	}
 	topic, exists := m.Topics[subject]
 	if !exists {
-		log.Fatalln("invalid subject")
+		topic = NewTopic(subject)
+		m.Topics[subject]=topic
 	}
 	id := topic.PublishMessage(msg)
 	return id,nil
