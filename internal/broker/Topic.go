@@ -44,18 +44,18 @@ func (t *Topic) PublishMessage(msg broker.Message) int {
 	//	sub.registerMessage(msg)
 	//	//TODO: Can we add concurrency here?
 	//}
-
+	messageId := MessageID.GetID()
 	t.lock.Lock()
 	//t.BufferIndex++
 	t.Buffer = append (t.Buffer,msg)
 	go func(){
 		t.pubSignal<- struct{}{}
 	}()
+	t.IDs[messageId] = struct{}{}
 	t.lock.Unlock()
 
 
-	messageId := MessageID.GetID()
-	t.IDs[messageId] = struct{}{}
+
 
 	if msg.Expiration != 0 {
 		t.Messages[messageId] = msg
