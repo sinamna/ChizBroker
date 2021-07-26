@@ -90,6 +90,24 @@ func(t *Topic) publishListener(){
 		}
 	}
 }
+
+
+func(t *Topic) Fetch(id int)(broker.Message,error){
+	message, exists:= t.Messages[id]
+	if !exists{
+		_, existedInPast := t.IDs[id]
+		if !existedInPast{
+			//fmt.Println("invalid")
+			return broker.Message{}, broker.ErrInvalidID
+		}else{
+			//fmt.Println("expired")
+			return broker.Message{}, broker.ErrExpiredID
+		}
+	}
+	//fmt.Println("found")
+	return message, nil
+}
+
 func NewTopic(name string) *Topic {
 	subscribers := make([]*Subscriber, 0)
 	newTopic := &Topic{
