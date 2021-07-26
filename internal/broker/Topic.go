@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"therealbroker/internal/utils"
 	"therealbroker/pkg/broker"
@@ -17,7 +18,7 @@ type Topic struct {
 	Messages    map[int]broker.Message
 	IDs         map[int]struct{}
 	Buffer []broker.Message
-	BufferIndex int
+	//BufferIndex int
 	pubSignal chan struct{}
 }
 
@@ -46,8 +47,8 @@ func (t *Topic) PublishMessage(msg broker.Message) int {
 	//}
 
 	t.lock.Lock()
-	t.BufferIndex++
-	t.Buffer[t.BufferIndex]=msg
+	//t.BufferIndex++
+	t.Buffer = append (t.Buffer,msg)
 	go func(){
 		t.pubSignal<- struct{}{}
 	}()
@@ -67,17 +68,27 @@ func(t *Topic) publishListener(){
 	for{
 		select {
 		case <-t.pubSignal:
+			if len(t.Buffer) ==0 {
+				continue
+			}
 			t.lock.Lock()
-			messages:= t.Buffer
+			messages:= make([]broker.Message,len(t.Buffer))
+			copy(messages,t.Buffer)
+			fmt.Println(messages)
+			t.Buffer = t.Buffer[:0]
 			t.lock.Unlock()
+			var wg sync.WaitGroup
 			for _,sub:= range t.Subscribers{
 				sub := sub
+				wg.Add(1)
 				go func(){
 					for _, message:= range messages{
 						sub.registerMessage(message)
 					}
+					wg.Done()
 				}()
 			}
+			wg.Wait()
 		}
 	}
 }
@@ -88,8 +99,8 @@ func NewTopic(name string, buffSize int) *Topic {
 		Subscribers: subscribers,
 		Messages:    map[int]broker.Message{},
 		IDs:         map[int]struct{}{},
-		BufferIndex: -1,
-		Buffer: make([]broker.Message,buffSize),
+		//BufferIndex: -1,
+		Buffer: make([]broker.Message,0),
 		pubSignal: make(chan struct{}),
 	}
 	//go newTopic.registerSub()
