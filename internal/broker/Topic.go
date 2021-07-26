@@ -2,7 +2,6 @@ package broker
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"therealbroker/internal/utils"
 	"therealbroker/pkg/broker"
@@ -74,7 +73,6 @@ func(t *Topic) publishListener(){
 			t.lock.Lock()
 			messages:= make([]broker.Message,len(t.Buffer))
 			copy(messages,t.Buffer)
-			fmt.Println(messages)
 			t.Buffer = t.Buffer[:0]
 			t.lock.Unlock()
 			var wg sync.WaitGroup
@@ -92,7 +90,7 @@ func(t *Topic) publishListener(){
 		}
 	}
 }
-func NewTopic(name string, buffSize int) *Topic {
+func NewTopic(name string) *Topic {
 	subscribers := make([]*Subscriber, 0)
 	newTopic := &Topic{
 		Name:        name,
