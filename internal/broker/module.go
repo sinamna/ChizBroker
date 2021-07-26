@@ -3,11 +3,13 @@ package broker
 import (
 	"context"
 	"log"
+	"sync"
 	"therealbroker/pkg/broker"
 )
 
 type Module struct {
 	// TODO: Add required fields
+	sync.Mutex
 	closed bool
 	Topics map[string]*Topic
 }
@@ -31,11 +33,13 @@ func (m *Module) Publish(ctx context.Context, subject string, msg broker.Message
 	if m.closed {
 		return -1, broker.ErrUnavailable
 	}
+	m.Lock()
 	topic, exists := m.Topics[subject]
 	if !exists {
 		topic = NewTopic(subject)
 		m.Topics[subject]=topic
 	}
+	m.Unlock()
 	id := topic.PublishMessage(msg)
 	return id,nil
 }
@@ -45,11 +49,14 @@ func (m *Module) Subscribe(ctx context.Context, subject string) (<-chan broker.M
 		return nil, broker.ErrUnavailable
 	}
 	//channel := make(chan broker.Message)
+	m.Lock()
 	topic, exists := m.Topics[subject]
 	if !exists {
 		topic = NewTopic(subject)
 		m.Topics[subject]=topic
 	}
+	m.Unlock()
+
 	channel:= topic.RegisterSubscriber(ctx)
 	return channel, nil
 }
@@ -58,7 +65,10 @@ func (m *Module) Fetch(ctx context.Context, subject string, id int) (broker.Mess
 	if m.closed {
 		return broker.Message{}, broker.ErrUnavailable
 	}
+	m.Lock()
 	topic, exists:= m.Topics[subject]
+	m.Unlock()
+
 	if !exists{
 		log.Fatalln("invalid topic")
 	}
