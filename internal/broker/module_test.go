@@ -296,8 +296,7 @@ func TestDataRace(t *testing.T) {
 			case <-ticker.C:
 				return
 
-			default:
-				id := <-ids
+			case id := <-ids:
 				_, err := service.Fetch(mainCtx, "ali", id)
 				assert.Nil(t, err)
 			}
