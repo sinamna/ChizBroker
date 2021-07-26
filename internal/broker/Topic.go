@@ -3,8 +3,8 @@ package broker
 import (
 	"context"
 	"sync"
-	"therealbroker/internal/utils"
 	"therealbroker/pkg/broker"
+	"time"
 )
 
 var MessageID = AutoIncId{id: 1}
@@ -19,12 +19,15 @@ type Topic struct {
 	Buffer []broker.Message
 	//BufferIndex int
 	pubSignal chan struct{}
+	expireSignal chan int
 }
 
 func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
 	ch := make(chan broker.Message)
 	newSub := CreateNewSubscriber(ctx,ch)
+	t.lock.Lock()
 	t.Subscribers = append(t.Subscribers, newSub)
+	t.lock.Unlock()
 	return ch
 }
 
@@ -40,11 +43,10 @@ func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
 //}
 
 func (t *Topic) PublishMessage(msg broker.Message) int {
-	//for _, sub := range t.Subscribers {
-	//	sub.registerMessage(msg)
-	//	//TODO: Can we add concurrency here?
-	//}
+
 	messageId := MessageID.GetID()
+	//fmt.Println("publishing",messageId)
+
 	t.lock.Lock()
 	//t.BufferIndex++
 	t.Buffer = append (t.Buffer,msg)
@@ -52,15 +54,13 @@ func (t *Topic) PublishMessage(msg broker.Message) int {
 		t.pubSignal<- struct{}{}
 	}()
 	t.IDs[messageId] = struct{}{}
-	t.lock.Unlock()
-
-
-
 
 	if msg.Expiration != 0 {
 		t.Messages[messageId] = msg
-		go utils.WatchForExpiration(t.Messages, messageId, msg.Expiration)
+		go t.expireMessage(messageId, msg.Expiration)
 	}
+	t.lock.Unlock()
+
 	return messageId
 }
 func(t *Topic) publishListener(){
@@ -93,6 +93,8 @@ func(t *Topic) publishListener(){
 
 
 func(t *Topic) Fetch(id int)(broker.Message,error){
+	t.lock.Lock()
+	//fmt.Println("fetching",id)
 	message, exists:= t.Messages[id]
 	if !exists{
 		_, existedInPast := t.IDs[id]
@@ -104,10 +106,28 @@ func(t *Topic) Fetch(id int)(broker.Message,error){
 			return broker.Message{}, broker.ErrExpiredID
 		}
 	}
+	t.lock.Unlock()
 	//fmt.Println("found")
 	return message, nil
 }
+func (t *Topic) WatchForExpiration(){
+	for{
+		select{
+		case id := <- t.expireSignal:
+			//fmt.Println("tssss",id)
+			t.lock.Lock()
+			delete(t.Messages,id)
+			t.lock.Unlock()
+		}
+	}
 
+}
+func (t *Topic) expireMessage(id int, expiration time.Duration){
+	select{
+	case <-time.After(expiration):
+		t.expireSignal<-id
+	}
+}
 func NewTopic(name string) *Topic {
 	subscribers := make([]*Subscriber, 0)
 	newTopic := &Topic{
@@ -118,9 +138,11 @@ func NewTopic(name string) *Topic {
 		//BufferIndex: -1,
 		Buffer: make([]broker.Message,0),
 		pubSignal: make(chan struct{}),
+		expireSignal: make(chan int),
 	}
 	//go newTopic.registerSub()
 	go newTopic.publishListener()
+	go newTopic.WatchForExpiration()
 	return newTopic
 }
 
