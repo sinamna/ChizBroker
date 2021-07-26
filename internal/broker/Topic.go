@@ -11,11 +11,14 @@ var MessageID = AutoIncId{id: 1}
 
 
 type Topic struct {
-	sync.Mutex
+	lock sync.Mutex
 	Name        string
 	Subscribers []*Subscriber
 	Messages    map[int]broker.Message
 	IDs         map[int]struct{}
+	Buffer []broker.Message
+	BufferIndex int
+	pubSignal chan struct{}
 }
 
 func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
@@ -37,10 +40,20 @@ func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
 //}
 
 func (t *Topic) PublishMessage(msg broker.Message) int {
-	for _, sub := range t.Subscribers {
-		sub.registerMessage(msg)
-		//TODO: Can we add concurrency here?
-	}
+	//for _, sub := range t.Subscribers {
+	//	sub.registerMessage(msg)
+	//	//TODO: Can we add concurrency here?
+	//}
+
+	t.lock.Lock()
+	t.BufferIndex++
+	t.Buffer[t.BufferIndex]=msg
+	go func(){
+		t.pubSignal<- struct{}{}
+	}()
+	t.lock.Unlock()
+
+
 	messageId := MessageID.GetID()
 	t.IDs[messageId] = struct{}{}
 
@@ -50,17 +63,37 @@ func (t *Topic) PublishMessage(msg broker.Message) int {
 	}
 	return messageId
 }
-
-func NewTopic(name string) *Topic {
+func(t *Topic) publishListener(){
+	for{
+		select {
+		case <-t.pubSignal:
+			t.lock.Lock()
+			messages:= t.Buffer
+			t.lock.Unlock()
+			for _,sub:= range t.Subscribers{
+				sub := sub
+				go func(){
+					for _, message:= range messages{
+						sub.registerMessage(message)
+					}
+				}()
+			}
+		}
+	}
+}
+func NewTopic(name string, buffSize int) *Topic {
 	subscribers := make([]*Subscriber, 0)
 	newTopic := &Topic{
 		Name:        name,
 		Subscribers: subscribers,
 		Messages:    map[int]broker.Message{},
 		IDs:         map[int]struct{}{},
-
+		BufferIndex: -1,
+		Buffer: make([]broker.Message,buffSize),
+		pubSignal: make(chan struct{}),
 	}
 	//go newTopic.registerSub()
+	go newTopic.publishListener()
 	return newTopic
 }
 
