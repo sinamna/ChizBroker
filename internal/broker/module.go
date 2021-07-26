@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"log"
 	"therealbroker/pkg/broker"
 )
 
@@ -57,5 +58,9 @@ func (m *Module) Fetch(ctx context.Context, subject string, id int) (broker.Mess
 	if m.closed {
 		return broker.Message{}, broker.ErrUnavailable
 	}
-	return broker.Message{}, nil
+	topic, exists:= m.Topics[subject]
+	if !exists{
+		log.Fatalln("invalid topic")
+	}
+	return topic.Fetch(id)
 }
