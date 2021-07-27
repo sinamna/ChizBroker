@@ -9,7 +9,7 @@ import (
 )
 
 var MessageID = AutoIncId{id: 1}
-//var topicLock = make(chan struct{},1)
+
 
 type Topic struct {
 	sync.Mutex

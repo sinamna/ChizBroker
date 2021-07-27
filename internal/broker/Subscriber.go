@@ -2,12 +2,10 @@ package broker
 
 import (
 	"context"
-	"sync"
 	"therealbroker/pkg/broker"
 )
 
 type Subscriber struct {
-	sync.RWMutex
 	Channel chan broker.Message
 	Ctx     context.Context
 
