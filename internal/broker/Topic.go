@@ -2,16 +2,17 @@ package broker
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"therealbroker/pkg/broker"
 	"time"
 )
 
 var MessageID = AutoIncId{id: 1}
-
+//var topicLock = make(chan struct{},1)
 
 type Topic struct {
-	lock sync.Mutex
+	sync.Mutex
 	Name        string
 	Subscribers []*Subscriber
 	Messages    map[int]broker.Message
@@ -25,56 +26,40 @@ type Topic struct {
 func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
 	ch := make(chan broker.Message)
 	newSub := CreateNewSubscriber(ctx,ch)
-	t.lock.Lock()
+	t.Lock()
 	t.Subscribers = append(t.Subscribers, newSub)
-	t.lock.Unlock()
+	t.Unlock()
 	return ch
 }
 
-//func (t *Topic) registerSub() {
-//	for {
-//		select {
-//		case sub := <-t.subChannel:
-//			t.Lock()
-//
-//			t.Unlock()
-//		}
-//	}
-//}
-
 func (t *Topic) PublishMessage(msg broker.Message) int {
 
+	t.Lock()
 	messageId := MessageID.GetID()
-	//fmt.Println("publishing",messageId)
-
-	t.lock.Lock()
-	//t.BufferIndex++
 	t.Buffer = append (t.Buffer,msg)
-	go func(){
-		t.pubSignal<- struct{}{}
-	}()
 	t.IDs[messageId] = struct{}{}
-
 	if msg.Expiration != 0 {
 		t.Messages[messageId] = msg
 		go t.expireMessage(messageId, msg.Expiration)
 	}
-	t.lock.Unlock()
-
+	t.Unlock()
+	go func(){
+		t.pubSignal<- struct{}{}
+	}()
 	return messageId
 }
 func(t *Topic) publishListener(){
 	for{
 		select {
 		case <-t.pubSignal:
+
+			t.Lock()
 			if len(t.Buffer) ==0 {
 				continue
 			}
-			t.lock.Lock()
 			messages:= make([]broker.Message,len(t.Buffer))
 			copy(messages,t.Buffer)
 			t.Buffer = t.Buffer[:0]
-			t.lock.Unlock()
 			var wg sync.WaitGroup
 			for _,sub:= range t.Subscribers{
 				sub := sub
@@ -86,6 +71,7 @@ func(t *Topic) publishListener(){
 					wg.Done()
 				}()
 			}
+			t.Unlock()
 			wg.Wait()
 		}
 	}
@@ -93,31 +79,36 @@ func(t *Topic) publishListener(){
 
 
 func(t *Topic) Fetch(id int)(broker.Message,error){
-	t.lock.Lock()
+	var fetchedMessage broker.Message
+
+	t.Lock()
 	//fmt.Println("fetching",id)
-	message, exists:= t.Messages[id]
-	if !exists{
-		_, existedInPast := t.IDs[id]
-		if !existedInPast{
-			//fmt.Println("invalid")
-			return broker.Message{}, broker.ErrInvalidID
-		}else{
-			//fmt.Println("expired")
+	_, existedInPast := t.IDs[id]
+	message, exists := t.Messages[id]
+
+	if existedInPast{
+		if !exists{
+			fmt.Println("invalid")
 			return broker.Message{}, broker.ErrExpiredID
+		}else{
+			fetchedMessage = message
 		}
+	}else{
+		return fetchedMessage,broker.ErrInvalidID
 	}
-	t.lock.Unlock()
+	t.Unlock()
+
 	//fmt.Println("found")
-	return message, nil
+	return fetchedMessage, nil
 }
 func (t *Topic) WatchForExpiration(){
 	for{
 		select{
 		case id := <- t.expireSignal:
 			//fmt.Println("tssss",id)
-			t.lock.Lock()
+			t.Lock()
 			delete(t.Messages,id)
-			t.lock.Unlock()
+			t.Unlock()
 		}
 	}
 
@@ -140,7 +131,6 @@ func NewTopic(name string) *Topic {
 		pubSignal: make(chan struct{}),
 		expireSignal: make(chan int),
 	}
-	//go newTopic.registerSub()
 	go newTopic.publishListener()
 	go newTopic.WatchForExpiration()
 	return newTopic
