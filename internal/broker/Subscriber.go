@@ -14,7 +14,12 @@ type Subscriber struct {
 }
 
 func (s *Subscriber) registerMessage(msg broker.Message){
-	s.Channel<-msg
+	select{
+	case <-s.Ctx.Done():
+		return
+	default:
+		s.Channel<- msg
+	}
 }
 func CreateNewSubscriber(ctx context.Context, ch chan broker.Message)*Subscriber{
 	newSub:= &Subscriber{
