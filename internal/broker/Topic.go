@@ -20,6 +20,7 @@ type Topic struct {
 	Buffer []broker.Message
 	//BufferIndex int
 	pubSignal chan struct{}
+	signalAvailable bool
 	expireSignal chan int
 }
 
@@ -42,10 +43,15 @@ func (t *Topic) PublishMessage(msg broker.Message) int {
 		t.Messages[messageId] = msg
 		go t.expireMessage(messageId, msg.Expiration)
 	}
+	if !t.signalAvailable {
+		go func(){
+			t.pubSignal<- struct{}{}
+		}()
+		t.signalAvailable= true
+	}
+
 	t.Unlock()
-	go func(){
-		t.pubSignal<- struct{}{}
-	}()
+
 	return messageId
 }
 func(t *Topic) publishListener(){
@@ -71,6 +77,7 @@ func(t *Topic) publishListener(){
 					wg.Done()
 				}()
 			}
+			t.signalAvailable=false
 			t.Unlock()
 			wg.Wait()
 		}
@@ -130,6 +137,7 @@ func NewTopic(name string) *Topic {
 		Buffer: make([]broker.Message,0),
 		pubSignal: make(chan struct{}),
 		expireSignal: make(chan int),
+		signalAvailable: false,
 	}
 	go newTopic.publishListener()
 	go newTopic.WatchForExpiration()
