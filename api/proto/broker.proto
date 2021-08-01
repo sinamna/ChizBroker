@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package broker;
+
+option go_package = "broker/api/proto";
+
+service Broker {
+  // Publish returns an id if the delivery is successful
+  // If broker is closed, should return Unavailable
+  rpc Publish (PublishRequest) returns (PublishResponse);
+  // Subscribe returns an stream of messages
+  // If broker is closed, should return Unavailable
+  rpc Subscribe(SubscribeRequest) returns (stream MessageResponse);
+  // Fetch returns the proper message body, if its present
+  // If broker is closed, should return Unavailable
+  // If the provided id is expired or not present,
+  // should return InvalidArgument
+  rpc Fetch(FetchRequest) returns (MessageResponse);
+}
+
+message PublishRequest {
+  string subject = 1;
+  bytes body = 2;
+  int32 expirationSeconds = 3;
+}
+
+message PublishResponse {
+  int32 id = 1;
+}
+
+message SubscribeRequest {
+  string subject = 1;
+}
+
+message MessageResponse {
+  bytes body = 1;
+}
+
+message FetchRequest {
+  string subject = 1;
+  int32 id = 2;
+}
