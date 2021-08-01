@@ -9,7 +9,6 @@ import (
 )
 
 var MessageID = AutoIncId{id: 1}
-//var topicLock = make(chan struct{},1)
 
 type Topic struct {
 	sync.Mutex
@@ -18,7 +17,6 @@ type Topic struct {
 	Messages    map[int]broker.Message
 	IDs         map[int]struct{}
 	Buffer []broker.Message
-	//BufferIndex int
 	pubSignal chan struct{}
 	signalAvailable bool
 	expireSignal chan int
@@ -89,7 +87,6 @@ func(t *Topic) Fetch(id int)(broker.Message,error){
 	var fetchedMessage broker.Message
 
 	t.Lock()
-	//fmt.Println("fetching",id)
 	_, existedInPast := t.IDs[id]
 	message, exists := t.Messages[id]
 
@@ -105,14 +102,12 @@ func(t *Topic) Fetch(id int)(broker.Message,error){
 	}
 	t.Unlock()
 
-	//fmt.Println("found")
 	return fetchedMessage, nil
 }
 func (t *Topic) WatchForExpiration(){
 	for{
 		select{
 		case id := <- t.expireSignal:
-			//fmt.Println("tssss",id)
 			t.Lock()
 			delete(t.Messages,id)
 			t.Unlock()
@@ -133,7 +128,6 @@ func NewTopic(name string) *Topic {
 		Subscribers: subscribers,
 		Messages:    map[int]broker.Message{},
 		IDs:         map[int]struct{}{},
-		//BufferIndex: -1,
 		Buffer: make([]broker.Message,0),
 		pubSignal: make(chan struct{}),
 		expireSignal: make(chan int),
