@@ -33,10 +33,25 @@ func(s *Server) Subscribe(req *pb.SubscribeRequest,stream pb.Broker_SubscribeSer
 	}
 	for message := range ch{
 		messageResponse := &pb.MessageResponse{Body: []byte(message.Body)}
-		stream.Send(messageResponse)
+		err := stream.Send(messageResponse)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
-func(s *Server) Fetch(context.Context, *pb.FetchRequest) (*pb.MessageResponse, error){
-
+func(s *Server) Fetch(ctx context.Context,fetchReq *pb.FetchRequest) (*pb.MessageResponse, error){
+	message, err:= s.broker.Fetch(ctx,fetchReq.GetSubject(),int(fetchReq.GetId()))
+	if err!= nil{
+		switch err{
+		case broker.ErrUnavailable:
+			return nil, status.Errorf(codes.Unavailable,"broker has been closed bruh")
+		case broker.ErrInvalidID:
+			return nil, status.Errorf(codes.InvalidArgument,"invalid ID has been entered")
+		case broker.ErrExpiredID:
+			return nil, status.Errorf(codes.DeadlineExceeded,"message has been expired")
+		}
+	}
+	messageResponse := &pb.MessageResponse{Body: []byte(message.Body)}
+	return messageResponse, nil
 }
