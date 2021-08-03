@@ -5,15 +5,18 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	pb "therealbroker/api/proto"
+	broker2 "therealbroker/internal/broker"
 	"therealbroker/pkg/broker"
 	"time"
 
 )
 type Server struct{
 	broker broker.Broker
+	pb.UnimplementedBrokerServer
 }
 
-func(s *Server) Publish(ctx context.Context,publishReq *pb.PublishRequest) (*pb.PublishResponse, error) {
+
+func(s Server) Publish(ctx context.Context,publishReq *pb.PublishRequest) (*pb.PublishResponse, error) {
 	message:= broker.Message{
 		Body: string(publishReq.GetBody()),
 		Expiration: time.Duration(publishReq.ExpirationSeconds),
@@ -26,7 +29,7 @@ func(s *Server) Publish(ctx context.Context,publishReq *pb.PublishRequest) (*pb.
 	return response,nil
 
 }
-func(s *Server) Subscribe(req *pb.SubscribeRequest,stream pb.Broker_SubscribeServer) error{
+func(s Server) Subscribe(req *pb.SubscribeRequest,stream pb.Broker_SubscribeServer) error{
 	ch, err :=s.broker.Subscribe(context.Background(),req.GetSubject())
 	if err!= nil{
 		return status.Errorf(codes.Unavailable,"Broker has been closed bruh.")
@@ -40,7 +43,7 @@ func(s *Server) Subscribe(req *pb.SubscribeRequest,stream pb.Broker_SubscribeSer
 	}
 	return nil
 }
-func(s *Server) Fetch(ctx context.Context,fetchReq *pb.FetchRequest) (*pb.MessageResponse, error){
+func(s Server) Fetch(ctx context.Context,fetchReq *pb.FetchRequest) (*pb.MessageResponse, error){
 	message, err:= s.broker.Fetch(ctx,fetchReq.GetSubject(),int(fetchReq.GetId()))
 	if err!= nil{
 		switch err{
@@ -54,4 +57,8 @@ func(s *Server) Fetch(ctx context.Context,fetchReq *pb.FetchRequest) (*pb.Messag
 	}
 	messageResponse := &pb.MessageResponse{Body: []byte(message.Body)}
 	return messageResponse, nil
+}
+
+func GetServer() pb.BrokerServer{
+	return  &Server{broker: broker2.NewModule()}
 }
