@@ -8,7 +8,6 @@ import (
 )
 
 type Module struct {
-	// TODO: Add required fields
 	sync.Mutex
 	closed bool
 	Topics map[string]*Topic
