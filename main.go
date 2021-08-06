@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"log"
 	"net"
+	"net/http"
 	pb "therealbroker/api/proto"
 	"therealbroker/api/server"
 )
@@ -16,11 +18,14 @@ import (
 // 	  for every base functionality ( publish, subscribe etc. )
 
 func main() {
-	//http.Handle("/metrics",promhttp.Handler())
-	//err := http.ListenAndServe(":8000", nil)
-	//if err != nil {
-	//	fmt.Println(err)
-	//}
+	go func(){
+		fmt.Println("starting prometheus on 8000")
+		http.Handle("/metrics",promhttp.Handler())
+		err := http.ListenAndServe(":8000", nil)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	lis, err := net.Listen("tcp", "localhost:8086")
 	if err != nil {
@@ -29,7 +34,7 @@ func main() {
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterBrokerServer(grpcServer,server.Server{})
-	fmt.Println("server started")
+	fmt.Println("starting grpc server on 8086")
 	err = grpcServer.Serve(lis)
 	if err != nil {
 		log.Fatalf("failed to run server: %v\n", err)
