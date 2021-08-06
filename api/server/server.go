@@ -7,8 +7,8 @@ import (
 	pb "therealbroker/api/proto"
 	broker2 "therealbroker/internal/broker"
 	"therealbroker/pkg/broker"
+	"therealbroker/pkg/metric"
 	"time"
-
 )
 type Server struct{
 	broker broker.Broker
@@ -17,6 +17,10 @@ type Server struct{
 
 
 func(s Server) Publish(ctx context.Context,publishReq *pb.PublishRequest) (*pb.PublishResponse, error) {
+	metric.MethodCalls.WithLabelValues("publish").Inc()
+	currentTime := time.Now()
+	defer metric.MethodDuration.WithLabelValues("publish").Observe(float64(time.Since(currentTime)))
+
 	message:= broker.Message{
 		Body: string(publishReq.GetBody()),
 		Expiration: time.Duration(publishReq.ExpirationSeconds),
@@ -30,6 +34,10 @@ func(s Server) Publish(ctx context.Context,publishReq *pb.PublishRequest) (*pb.P
 
 }
 func(s Server) Subscribe(req *pb.SubscribeRequest,stream pb.Broker_SubscribeServer) error{
+	metric.MethodCalls.WithLabelValues("subscribe").Inc()
+	currentTime := time.Now()
+	defer metric.MethodDuration.WithLabelValues("subscribe").Observe(float64(time.Since(currentTime)))
+
 	ch, err :=s.broker.Subscribe(context.Background(),req.GetSubject())
 	if err!= nil{
 		return status.Errorf(codes.Unavailable,"Broker has been closed bruh.")
@@ -44,6 +52,10 @@ func(s Server) Subscribe(req *pb.SubscribeRequest,stream pb.Broker_SubscribeServ
 	return nil
 }
 func(s Server) Fetch(ctx context.Context,fetchReq *pb.FetchRequest) (*pb.MessageResponse, error){
+	metric.MethodCalls.WithLabelValues("fetch").Inc()
+	currentTime := time.Now()
+	defer metric.MethodDuration.WithLabelValues("fetch").Observe(float64(time.Since(currentTime)))
+
 	message, err:= s.broker.Fetch(ctx,fetchReq.GetSubject(),int(fetchReq.GetId()))
 	if err!= nil{
 		switch err{
