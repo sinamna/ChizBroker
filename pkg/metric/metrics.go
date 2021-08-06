@@ -12,7 +12,7 @@ var (
 		Name: "broker_active_subscribers",
 		Help: "number of active subscribers in broker",
 	})
-	MethodCalls = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	MethodCalls = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "broker_active_subscribers",
 		Help: "number of active subscribers in broker",
 	},[]string{"method"})
