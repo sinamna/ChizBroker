@@ -20,11 +20,12 @@ type Topic struct {
 	pubSignal chan struct{}
 	signalAvailable bool
 	expireSignal chan int
+	subDeleteSignal chan *Subscriber
 }
 
 func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
 	ch := make(chan broker.Message)
-	newSub := CreateNewSubscriber(ctx,ch)
+	newSub := CreateNewSubscriber(ctx,ch,t.subDeleteSignal)
 	t.Lock()
 	t.Subscribers = append(t.Subscribers, newSub)
 	t.Unlock()
@@ -121,6 +122,23 @@ func (t *Topic) expireMessage(id int, expiration time.Duration){
 		t.expireSignal<-id
 	}
 }
+
+func (t *Topic) unSubscribe(){
+	for {
+		select{
+		case subscriber :=<- t.subDeleteSignal:
+			t.Lock()
+			for i := range t.Subscribers{
+				if t.Subscribers[i] == subscriber{
+					t.Subscribers = append(t.Subscribers[:i],t.Subscribers[i+1:]...)
+					break
+				}
+			}
+			t.Unlock()
+		}
+	}
+}
+
 func NewTopic(name string) *Topic {
 	subscribers := make([]*Subscriber, 0)
 	newTopic := &Topic{
@@ -132,9 +150,11 @@ func NewTopic(name string) *Topic {
 		pubSignal: make(chan struct{}),
 		expireSignal: make(chan int),
 		signalAvailable: false,
+		subDeleteSignal: make(chan *Subscriber),
 	}
 	go newTopic.publishListener()
 	go newTopic.WatchForExpiration()
+	go newTopic.unSubscribe()
 	return newTopic
 }
 
