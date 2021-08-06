@@ -19,7 +19,7 @@ var (
 )
 
 func init(){
-	prometheus.Register(methodDuration)
-	prometheus.Register(activeSubscribers)
-	prometheus.Register(methodCalls)
+	prometheus.Register(MethodDuration)
+	prometheus.Register(ActiveSubscribers)
+	prometheus.Register(MethodCalls)
 }
