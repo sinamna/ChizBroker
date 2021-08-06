@@ -37,6 +37,8 @@ func(s Server) Subscribe(req *pb.SubscribeRequest,stream pb.Broker_SubscribeServ
 	metric.MethodCalls.WithLabelValues("subscribe").Inc()
 	currentTime := time.Now()
 	defer metric.MethodDuration.WithLabelValues("subscribe").Observe(float64(time.Since(currentTime)))
+	metric.ActiveSubscribers.Inc()
+	defer metric.ActiveSubscribers.Dec()
 
 	ch, err :=s.broker.Subscribe(context.Background(),req.GetSubject())
 	if err!= nil{
