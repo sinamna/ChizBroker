@@ -13,8 +13,8 @@ var (
 		Help: "number of active subscribers in broker",
 	})
 	MethodCalls = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "broker_active_subscribers",
-		Help: "number of active subscribers in broker",
+		Name: "broker_method_calls",
+		Help: "number of method calls in broker",
 	},[]string{"method"})
 )
 
