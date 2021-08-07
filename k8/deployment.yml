@@ -13,5 +13,5 @@ spec:
     spec:
       containers:
       - name: broker-container
-        image: dockerproxy.bale.ai/sinamna/bale_broker:v1
+        image: dockerproxy.bale.ai/sinamna/bale_broker:v2
   replicas: 1
