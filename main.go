@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
 	"net/http"
@@ -35,6 +36,7 @@ func main() {
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterBrokerServer(grpcServer,server.Server{})
 	fmt.Println("starting grpc server on 8086")
+	reflection.Register(grpcServer)
 	err = grpcServer.Serve(lis)
 	if err != nil {
 		log.Fatalf("failed to run server: %v\n", err)
