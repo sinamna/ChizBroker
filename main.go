@@ -34,7 +34,7 @@ func main() {
 	}
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
-	pb.RegisterBrokerServer(grpcServer,server.Server{})
+	pb.RegisterBrokerServer(grpcServer,server.GetServer())
 	fmt.Println("starting grpc server on 8086")
 	reflection.Register(grpcServer)
 	err = grpcServer.Serve(lis)
