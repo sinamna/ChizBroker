@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broker-sina
+spec:
+  selector:
+    matchLabels:
+      app: broker-sina-pod
+  template:
+    metadata:
+      labels:
+        app: broker-sina-pod
+    spec:
+      containers:
+      - name: broker-container
+        image: dockerproxy.bale.ai/sinamna/bale_broker:v1
+  replicas: 1
