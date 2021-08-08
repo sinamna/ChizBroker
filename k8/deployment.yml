@@ -2,19 +2,23 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: broker-sina
+  namespace: bootcamp
 spec:
   selector:
     matchLabels:
-      app: broker-sina-pod
+      app: broker-sina
   template:
     metadata:
       labels:
-        app: broker-sina-pod
+        app: broker-sina
+        service_monitoring: bootcamp
     spec:
       containers:
-      - name: broker-container
-        image: dockerproxy.bale.ai/sinamna/bale_broker:v3
-        ports:
-          - containerPort: 8000
-          - containerPort: 8086
+        - name: sina-broker-container
+          image: dockerproxy.bale.ai/sinamna/bale_broker:v4
+          ports:
+            - name: grpc
+              containerPort: 8086
+            - name: prometheus
+              containerPort: 8000
   replicas: 1
