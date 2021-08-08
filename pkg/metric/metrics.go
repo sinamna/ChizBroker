@@ -24,10 +24,17 @@ var (
 		Name: "method_count",
 		Help: "number of method calls in broker",
 	},[]string{"method"})
+
+	MethodError = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "method_error_count",
+		Help: "counter error of each method",
+	},[]string{"method"})
+
 )
 
 func init(){
 	prometheus.Register(MethodDuration)
 	prometheus.Register(ActiveSubscribers)
 	prometheus.Register(MethodCalls)
+	prometheus.Register(MethodError)
 }
