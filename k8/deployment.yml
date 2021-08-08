@@ -17,7 +17,14 @@ spec:
     spec:
       containers:
         - name: sina-broker-container
-          image: dockerproxy.bale.ai/sinamna/bale_broker:v4
+          image: dockerproxy.bale.ai/sinamna/bale_broker:v5
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "1"
+            limits:
+              memory: "1Gi"
+              cpu: "1"
           ports:
             - name: grpc
               containerPort: 8086

@@ -28,7 +28,7 @@ func main() {
 		}
 	}()
 
-	lis, err := net.Listen("tcp", "localhost:8086")
+	lis, err := net.Listen("tcp", ":8086")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
