@@ -7,7 +7,7 @@ import (
 
 var (
 	MethodDuration = promauto.NewSummaryVec(prometheus.SummaryOpts{
-		Name:        "broker_call_duration",
+		Name:        "method_duration",
 		Help:        "calculating the latency of grpc calls",
 		Objectives: map[float64]float64{
 			0.5:  0.05,
@@ -21,7 +21,7 @@ var (
 		Help: "number of active subscribers in broker",
 	})
 	MethodCalls = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "broker_method_calls",
+		Name: "method_count",
 		Help: "number of method calls in broker",
 	},[]string{"method"})
 )

@@ -13,5 +13,8 @@ spec:
     spec:
       containers:
       - name: broker-container
-        image: dockerproxy.bale.ai/sinamna/bale_broker:v2
+        image: dockerproxy.bale.ai/sinamna/bale_broker:v3
+        ports:
+          - containerPort: 8000
+          - containerPort: 8086
   replicas: 1
