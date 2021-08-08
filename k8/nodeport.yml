@@ -10,6 +10,9 @@ spec:
     - name: grpc
       port: 8086
       targetPort: 8086
+    - name: prometheus
+      port: 8000
+      targetPort: 8000
 
 
 

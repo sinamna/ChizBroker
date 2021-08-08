@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: broker-sina
   namespace: bootcamp
+  labels:
+    app: broker-sina
 spec:
   selector:
     matchLabels:
