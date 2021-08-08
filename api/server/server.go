@@ -27,6 +27,7 @@ func(s Server) Publish(ctx context.Context,publishReq *pb.PublishRequest) (*pb.P
 	}
 	messageId, err := s.broker.Publish(ctx,publishReq.GetSubject(),message)
 	if err != nil {
+		metric.MethodError.WithLabelValues("publish").Inc()
 		return nil, status.Errorf(codes.Unavailable,"Broker has been closed bruh.")
 	}
 	response := &pb.PublishResponse{Id: int32(messageId)}
@@ -42,6 +43,7 @@ func(s Server) Subscribe(req *pb.SubscribeRequest,stream pb.Broker_SubscribeServ
 
 	ch, err :=s.broker.Subscribe(context.Background(),req.GetSubject())
 	if err!= nil{
+		metric.MethodError.WithLabelValues("subscribe").Inc()
 		return status.Errorf(codes.Unavailable,"Broker has been closed bruh.")
 	}
 	for message := range ch{
@@ -60,6 +62,7 @@ func(s Server) Fetch(ctx context.Context,fetchReq *pb.FetchRequest) (*pb.Message
 
 	message, err:= s.broker.Fetch(ctx,fetchReq.GetSubject(),int(fetchReq.GetId()))
 	if err!= nil{
+		metric.MethodError.WithLabelValues("fetch").Inc()
 		switch err{
 		case broker.ErrUnavailable:
 			return nil, status.Errorf(codes.Unavailable,"broker has been closed bruh")
