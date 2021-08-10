@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/pkg/profile"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -10,6 +11,8 @@ import (
 	"net/http"
 	pb "therealbroker/api/proto"
 	"therealbroker/api/server"
+	//"runtime"
+	_ "net/http/pprof"
 )
 
 // Main requirements:
@@ -19,6 +22,8 @@ import (
 // 	  for every base functionality ( publish, subscribe etc. )
 
 func main() {
+	//defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
+	defer profile.Start(profile.TraceProfile, profile.ProfilePath(".")).Stop()
 	go func(){
 		fmt.Println("starting prometheus on 8000")
 		http.Handle("/metrics",promhttp.Handler())
@@ -27,7 +32,9 @@ func main() {
 			fmt.Println(err)
 		}
 	}()
-
+	go func() {
+		http.ListenAndServe(":8080",nil)
+	}()
 	lis, err := net.Listen("tcp", ":8086")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

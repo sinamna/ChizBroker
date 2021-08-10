@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc"
 "log"
 pb "therealbroker/api/proto"
-"time"
+//"time"
 )
 
 const address = "localhost:8086"
@@ -27,9 +27,14 @@ func main() {
 				Body:    []byte(fmt.Sprint(counter)),
 			})
 			counter++
+			fmt.Println(counter,"sent")
 			ctx := context.WithValue(context.Background(), "a", "b")
-			_, err = c.Subscribe(ctx, &pb.SubscribeRequest{Subject: "mahdi"})
-			time.Sleep(time.Second)
+			ch, _ := c.Subscribe(ctx, &pb.SubscribeRequest{Subject: "test"})
+			go func() {
+				response, _ := ch.Recv()
+				fmt.Println(response.GetBody())
+			}()
+			//time.Sleep(time.Second)
 		}()
 	}
 }
