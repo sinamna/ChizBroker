@@ -80,9 +80,9 @@ func (t *Topic) actionListener() {
 	for {
 		select {
 		case newSub := <-t.subAddChan:
-			t.Lock()
+
 			t.Subscribers = append(t.Subscribers, newSub)
-			t.Unlock()
+
 
 		case subscriber := <-t.subDeleteChan:
 			for i := range t.Subscribers {
