@@ -22,9 +22,9 @@ import (
 // 	  for every base functionality ( publish, subscribe etc. )
 
 func main() {
-	//defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
+	defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.MemProfile,profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
-	defer profile.Start(profile.TraceProfile, profile.ProfilePath(".")).Stop()
+	//defer profile.Start(profile.TraceProfile, profile.ProfilePath(".")).Stop()
 	go func(){
 		fmt.Println("starting prometheus on 8000")
 		http.Handle("/metrics",promhttp.Handler())
