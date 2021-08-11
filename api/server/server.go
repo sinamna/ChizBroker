@@ -19,7 +19,7 @@ type Server struct{
 func(s Server) Publish(ctx context.Context,publishReq *pb.PublishRequest) (*pb.PublishResponse, error) {
 	metric.MethodCalls.WithLabelValues("publish").Inc()
 	currentTime := time.Now()
-	defer metric.MethodDuration.WithLabelValues("publish").Observe(float64(time.Since(currentTime)))
+	defer metric.MethodDuration.WithLabelValues("publish").Observe(float64(time.Since(currentTime).Nanoseconds()))
 
 	message:= broker.Message{
 		Body: string(publishReq.GetBody()),
@@ -37,7 +37,7 @@ func(s Server) Publish(ctx context.Context,publishReq *pb.PublishRequest) (*pb.P
 func(s Server) Subscribe(req *pb.SubscribeRequest,stream pb.Broker_SubscribeServer) error{
 	metric.MethodCalls.WithLabelValues("subscribe").Inc()
 	currentTime := time.Now()
-	defer metric.MethodDuration.WithLabelValues("subscribe").Observe(float64(time.Since(currentTime)))
+	defer metric.MethodDuration.WithLabelValues("subscribe").Observe(float64(time.Since(currentTime).Nanoseconds()))
 	metric.ActiveSubscribers.Inc()
 	defer metric.ActiveSubscribers.Dec()
 
@@ -58,7 +58,7 @@ func(s Server) Subscribe(req *pb.SubscribeRequest,stream pb.Broker_SubscribeServ
 func(s Server) Fetch(ctx context.Context,fetchReq *pb.FetchRequest) (*pb.MessageResponse, error){
 	metric.MethodCalls.WithLabelValues("fetch").Inc()
 	currentTime := time.Now()
-	defer metric.MethodDuration.WithLabelValues("fetch").Observe(float64(time.Since(currentTime)))
+	defer metric.MethodDuration.WithLabelValues("fetch").Observe(float64(time.Since(currentTime).Nanoseconds()))
 
 	message, err:= s.broker.Fetch(ctx,fetchReq.GetSubject(),int(fetchReq.GetId()))
 	if err!= nil{
