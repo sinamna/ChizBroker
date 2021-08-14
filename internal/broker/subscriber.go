@@ -12,7 +12,6 @@ type Subscriber struct {
 	Channel         chan broker.Message
 	Ctx             context.Context
 	unSubSignal     chan *Subscriber
-	RegisterChannel chan *broker.Message
 }
 
 func (s *Subscriber) SendMessages(msg broker.Message) {
@@ -30,7 +29,6 @@ func CreateNewSubscriber(ctx context.Context, ch chan broker.Message, unSubSigna
 		Channel:     ch,
 		Ctx:         ctx,
 		unSubSignal: unSubSignal,
-		RegisterChannel: make(chan *broker.Message),
 
 	}
 	return newSub

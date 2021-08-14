@@ -28,7 +28,7 @@ type Topic struct {
 }
 
 func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
-	ch := make(chan broker.Message)
+	ch := make(chan broker.Message, 20)
 	newSub := CreateNewSubscriber(ctx, ch, t.subDeleteChan)
 	t.subAddChan <- newSub
 	return ch
@@ -117,10 +117,10 @@ func NewTopic(name string) *Topic {
 		//IDs:             map[int]struct{}{},
 		//Buffer:          make([]broker.Message, 0),
 		//pubSignal:       make(chan struct{}),
-		expireSignal:    make(chan int),
+		expireSignal:    make(chan int, 10),
 		//signalAvailable: false,
-		subDeleteChan:   make(chan *Subscriber),
-		subAddChan:      make(chan *Subscriber),
+		subDeleteChan:   make(chan *Subscriber, 10),
+		subAddChan:      make(chan *Subscriber, 10),
 		msgPubChan: make(chan *broker.Message),
 	}
 	go newTopic.actionListener()
