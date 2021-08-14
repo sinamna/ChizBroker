@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"sync"
@@ -93,15 +94,26 @@ func TestPublishShouldPreserveOrder(t *testing.T) {
 	n := 50
 	messages := make([]broker.Message, n)
 	sub, _ := service.Subscribe(mainCtx, "ali")
-	for i := 0; i < n; i++ {
-		messages[i] = createMessage()
-		_, _ = service.Publish(mainCtx, "ali", messages[i])
-	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		for i := 0; i < n; i++ {
+			messages[i] = createMessage()
+			_, _ = service.Publish(mainCtx, "ali", messages[i])
+		}
+		wg.Done()
+	}()
 
-	for i := 0; i < n; i++ {
-		msg := <-sub
-		assert.Equal(t, messages[i], msg)
-	}
+	fmt.Println("done publishing")
+	wg.Add(1)
+	go func() {
+		for i := 0; i < n; i++ {
+			msg := <-sub
+			assert.Equal(t, messages[i], msg)
+		}
+		wg.Done()
+	}()
+	wg.Wait()
 }
 
 func TestPublishShouldNotSendToOtherSubscriptions(t *testing.T) {
