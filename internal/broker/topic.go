@@ -12,8 +12,9 @@ var MessageID = AutoIncId{id: 1}
 
 type Topic struct {
 	sync.Mutex
-	Name            string
-	Subscribers     []*Subscriber
+	Name string
+	//Subscribers     []*Subscriber
+	Subscribers     map[int]*Subscriber
 	Messages        map[int]broker.Message
 	IDs             map[int]struct{}
 	Buffer          []broker.Message
@@ -22,11 +23,12 @@ type Topic struct {
 	expireSignal    chan int
 	subDeleteChan   chan *Subscriber
 	subAddChan      chan *Subscriber
+	msgPubChan      chan *broker.Message
 	//messageAddChan  chan *PublishedMessage
 }
 
 func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
-	ch := make(chan broker.Message)
+	ch := make(chan broker.Message,20)
 	newSub := CreateNewSubscriber(ctx, ch, t.subDeleteChan)
 	//t.Lock()
 	//t.Subscribers = append(t.Subscribers, newSub)
@@ -66,61 +68,59 @@ func (t *Topic) PublishMessage(msg broker.Message) int {
 		t.Messages[messageId] = msg
 		go t.expireMessage(messageId, msg.Expiration)
 	}
-	if !t.signalAvailable {
-		go func() {
-			t.pubSignal <- struct{}{}
-		}()
-		t.signalAvailable = true
-	}
+	//if !t.signalAvailable {
+	//	go func() {
+	//		t.pubSignal <- struct{}{}
+	//	}()
+	//	t.signalAvailable = true
+	//}
 	t.Unlock()
-
+	//t.pubSignal <- struct{}{}
+	t.msgPubChan <- &msg
 	return messageId
 }
 func (t *Topic) actionListener() {
 	for {
 		select {
 		case newSub := <-t.subAddChan:
-
-			t.Subscribers = append(t.Subscribers, newSub)
-
-
+			t.Subscribers[newSub.Id] = newSub
 		case subscriber := <-t.subDeleteChan:
-			for i := range t.Subscribers {
-				if t.Subscribers[i] == subscriber {
-					t.Subscribers = append(t.Subscribers[:i], t.Subscribers[i+1:]...)
-					break
-				}
-			}
-		//case pMessage := <-t.messageAddChan:
-		//	t.Lock()
-		//
-		//	t.Unlock()
-		case <-t.pubSignal:
-			t.Lock()
-			//if len(t.Buffer) == 0 {
-			//	continue
-			//}
-			messages := make([]broker.Message, len(t.Buffer))
-			copy(messages, t.Buffer)
-			t.Buffer = t.Buffer[:0]
+			delete(t.Subscribers, subscriber.Id)
+		case msg := <-t.msgPubChan:
 			var wg sync.WaitGroup
 			for _, sub := range t.Subscribers {
 				sub := sub
 				wg.Add(1)
 				go func() {
-					for _, message := range messages {
-						sub.registerMessage(message)
-					}
+					sub.RegisterChannel <- msg
 					wg.Done()
 				}()
-
 			}
-			t.signalAvailable = false
-			t.Unlock()
+
 			wg.Wait()
-			fmt.Println("done")
-
-
+			//case <-t.pubSignal:
+			//	t.Lock()
+			//	//if len(t.Buffer) == 0 {
+			//	//	continue
+			//	//}
+			//	messages := make([]broker.Message, len(t.Buffer))
+			//	copy(messages, t.Buffer)
+			//	t.Buffer = t.Buffer[:0]
+			//	var wg sync.WaitGroup
+			//	for _, sub := range t.Subscribers {
+			//		sub := sub
+			//		wg.Add(1)
+			//		go func() {
+			//			for _, message := range messages {
+			//				sub.registerMessage(message)
+			//			}
+			//			wg.Done()
+			//		}()
+			//
+			//	}
+			//	t.signalAvailable = false
+			//	t.Unlock()
+			//	wg.Wait()
 
 		}
 	}
@@ -182,10 +182,10 @@ func (t *Topic) expireMessage(id int, expiration time.Duration) {
 //}
 
 func NewTopic(name string) *Topic {
-	subscribers := make([]*Subscriber, 0)
+	//subscribers := make([]*Subscriber, 0)
 	newTopic := &Topic{
 		Name:            name,
-		Subscribers:     subscribers,
+		Subscribers:     map[int]*Subscriber{},
 		Messages:        map[int]broker.Message{},
 		IDs:             map[int]struct{}{},
 		Buffer:          make([]broker.Message, 0),
@@ -195,6 +195,7 @@ func NewTopic(name string) *Topic {
 		subDeleteChan:   make(chan *Subscriber),
 		subAddChan:      make(chan *Subscriber),
 		//messageAddChan:  make(chan *PublishedMessage),
+		msgPubChan: make(chan *broker.Message),
 	}
 	go newTopic.actionListener()
 	go newTopic.WatchForExpiration()
