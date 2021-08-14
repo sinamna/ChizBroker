@@ -20,8 +20,6 @@ func (s *Subscriber) SendMessages(msg broker.Message) {
 	case <-s.Ctx.Done():
 		go func() { s.unSubSignal <- s }()
 		return
-	//case msg := <-s.RegisterChannel:
-	//	s.Channel <- *msg
 	default:
 		s.Channel <- msg
 	}
