@@ -2,6 +2,9 @@ package broker
 
 import (
 	"context"
+	"fmt"
+	"therealbroker/pkg/repository"
+
 	//"fmt"
 	"sync"
 	"therealbroker/pkg/broker"
@@ -12,19 +15,14 @@ var MessageID = AutoIncId{id: 1}
 
 type Topic struct {
 	sync.Mutex
-	Name string
-	//Subscribers     []*Subscriber
-	Subscribers     map[int]*Subscriber
-	Messages        map[int]*broker.Message
-	//IDs             map[int]struct{}
-	//Buffer          []broker.Message
-	//pubSignal       chan struct{}
-	//signalAvailable bool
-	expireSignal    chan int
-	subDeleteChan   chan *Subscriber
-	subAddChan      chan *Subscriber
-	msgPubChan      chan *broker.Message
-
+	Name          string
+	db            repository.Database
+	Subscribers   map[int]*Subscriber
+	Messages      map[int]*broker.Message
+	expireSignal  chan int
+	subDeleteChan chan *Subscriber
+	subAddChan    chan *Subscriber
+	msgPubChan    chan *broker.Message
 }
 
 func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
@@ -35,19 +33,8 @@ func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
 }
 
 func (t *Topic) PublishMessage(msg broker.Message) int {
-
-	t.Lock()
-
 	messageId := MessageID.GetID()
-	//t.Buffer = append(t.Buffer, msg)
-	//t.IDs[messageId] = struct{}{}
-	t.Messages[messageId] = nil
-	if msg.Expiration != 0 {
-		t.Messages[messageId] = &msg
-		go t.expireMessage(messageId, msg.Expiration)
-	}
-	t.Unlock()
-	//t.pubSignal <- struct{}{}
+	go t.db.SaveMessage(messageId, msg)
 	t.msgPubChan <- &msg
 	return messageId
 }
@@ -56,20 +43,23 @@ func (t *Topic) actionListener() {
 		select {
 		case newSub := <-t.subAddChan:
 			t.Subscribers[newSub.Id] = newSub
+			fmt.Println("sub registered")
 		case subscriber := <-t.subDeleteChan:
 			delete(t.Subscribers, subscriber.Id)
 		case msg := <-t.msgPubChan:
+			fmt.Println("publishing message")
 			var wg sync.WaitGroup
 			for _, sub := range t.Subscribers {
 				sub := sub
 				wg.Add(1)
 				go func() {
-					//sub.RegisterChannel <- msg
-					sub.SendMessages(*msg)
+					sub.RegisterChannel <- msg
+					//sub.SendMessages(*msg)
 					wg.Done()
 				}()
 			}
 			wg.Wait()
+
 		}
 	}
 }
@@ -81,12 +71,12 @@ func (t *Topic) Fetch(id int) (broker.Message, error) {
 	defer t.Unlock()
 
 	message, existed := t.Messages[id]
-	if !existed{
+	if !existed {
 		return fetchedMessage, broker.ErrInvalidID
-	}else{
-		if message == nil{
+	} else {
+		if message == nil {
 			return broker.Message{}, broker.ErrExpiredID
-		}else{
+		} else {
 			fetchedMessage = *message
 		}
 	}
@@ -96,9 +86,7 @@ func (t *Topic) WatchForExpiration() {
 	for {
 		select {
 		case id := <-t.expireSignal:
-			t.Lock()
-			t.Messages[id]=nil
-			t.Unlock()
+			go t.db.DeleteMessage(id)
 		}
 	}
 
@@ -109,19 +97,16 @@ func (t *Topic) expireMessage(id int, expiration time.Duration) {
 		t.expireSignal <- id
 	}
 }
-func NewTopic(name string) *Topic {
+func NewTopic(name string, db repository.Database) *Topic {
 	newTopic := &Topic{
-		Name:            name,
-		Subscribers:     map[int]*Subscriber{},
-		Messages:        map[int]*broker.Message{},
-		//IDs:             map[int]struct{}{},
-		//Buffer:          make([]broker.Message, 0),
-		//pubSignal:       make(chan struct{}),
-		expireSignal:    make(chan int, 10),
-		//signalAvailable: false,
-		subDeleteChan:   make(chan *Subscriber, 10),
-		subAddChan:      make(chan *Subscriber, 10),
-		msgPubChan: make(chan *broker.Message),
+		Name:          name,
+		Subscribers:   map[int]*Subscriber{},
+		Messages:      map[int]*broker.Message{},
+		expireSignal:  make(chan int, 3),
+		subDeleteChan: make(chan *Subscriber, 3),
+		subAddChan:    make(chan *Subscriber),
+		msgPubChan:    make(chan *broker.Message),
+		db:            db,
 	}
 	go newTopic.actionListener()
 	go newTopic.WatchForExpiration()
