@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync"
 	"therealbroker/pkg/broker"
+	"therealbroker/pkg/repository"
 )
 
 type Module struct {
@@ -35,7 +36,7 @@ func (m *Module) Publish(ctx context.Context, subject string, msg broker.Message
 	m.Lock()
 	topic, exists := m.Topics[subject]
 	if !exists {
-		topic = NewTopic(subject)
+		topic = NewTopic(subject, repository.GetInMemoryDB())
 		m.Topics[subject]=topic
 	}
 	m.Unlock()
@@ -51,7 +52,7 @@ func (m *Module) Subscribe(ctx context.Context, subject string) (<-chan broker.M
 	m.Lock()
 	topic, exists := m.Topics[subject]
 	if !exists {
-		topic = NewTopic(subject)
+		topic = NewTopic(subject, repository.GetInMemoryDB())
 		m.Topics[subject]=topic
 	}
 	m.Unlock()
