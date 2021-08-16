@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	//"github.com/pkg/profile"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
@@ -22,6 +23,11 @@ import (
 // 	  for every base functionality ( publish, subscribe etc. )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("couldn't load file")
+	}
+
 	//defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.MemProfile,profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.TraceProfile, profile.ProfilePath(".")).Stop()
