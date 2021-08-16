@@ -34,7 +34,7 @@ func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
 
 func (t *Topic) PublishMessage(msg broker.Message) int {
 	messageId := MessageID.GetID()
-	go t.db.SaveMessage(messageId, msg)
+	go t.db.SaveMessage(messageId, msg, t.Name)
 	t.msgPubChan <- &msg
 	return messageId
 }
@@ -86,7 +86,7 @@ func (t *Topic) WatchForExpiration() {
 	for {
 		select {
 		case id := <-t.expireSignal:
-			go t.db.DeleteMessage(id)
+			go t.db.DeleteMessage(id,t.Name)
 		}
 	}
 
