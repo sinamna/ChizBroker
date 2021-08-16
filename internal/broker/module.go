@@ -12,12 +12,19 @@ type Module struct {
 	sync.Mutex
 	closed bool
 	Topics map[string]*Topic
+	DB repository.Database
 }
 
 func NewModule() broker.Broker {
+	db, err:= repository.GetPostgreDB()
+	if err!=nil{
+		log.Fatalln(err)
+		return nil
+	}
 	return &Module{
 		closed: false,
 		Topics: map[string]*Topic{},
+		DB: db,
 	}
 }
 
@@ -36,7 +43,8 @@ func (m *Module) Publish(ctx context.Context, subject string, msg broker.Message
 	m.Lock()
 	topic, exists := m.Topics[subject]
 	if !exists {
-		topic = NewTopic(subject, repository.GetInMemoryDB())
+
+		topic = NewTopic(subject, m.DB)
 		m.Topics[subject]=topic
 	}
 	m.Unlock()
@@ -52,7 +60,7 @@ func (m *Module) Subscribe(ctx context.Context, subject string) (<-chan broker.M
 	m.Lock()
 	topic, exists := m.Topics[subject]
 	if !exists {
-		topic = NewTopic(subject, repository.GetInMemoryDB())
+		topic = NewTopic(subject, m.DB)
 		m.Topics[subject]=topic
 	}
 	m.Unlock()
