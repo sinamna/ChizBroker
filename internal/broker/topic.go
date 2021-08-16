@@ -2,7 +2,6 @@ package broker
 
 import (
 	"context"
-	"fmt"
 	"therealbroker/pkg/repository"
 
 	//"fmt"
@@ -34,7 +33,7 @@ func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
 
 func (t *Topic) PublishMessage(msg broker.Message) int {
 	messageId := MessageID.GetID()
-	go t.db.SaveMessage(messageId, msg, t.Name)
+	t.db.SaveMessage(messageId, msg, t.Name)
 	t.msgPubChan <- &msg
 	return messageId
 }
@@ -43,11 +42,9 @@ func (t *Topic) actionListener() {
 		select {
 		case newSub := <-t.subAddChan:
 			t.Subscribers[newSub.Id] = newSub
-			fmt.Println("sub registered")
 		case subscriber := <-t.subDeleteChan:
 			delete(t.Subscribers, subscriber.Id)
 		case msg := <-t.msgPubChan:
-			fmt.Println("publishing message")
 			var wg sync.WaitGroup
 			for _, sub := range t.Subscribers {
 				sub := sub
