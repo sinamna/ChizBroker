@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	_ "github.com/lib/pq"
 	"github.com/prometheus/common/log"
 	"os"
 	"sync"
@@ -14,18 +15,21 @@ var postgresDB *PostgresDatabase
 var connectionError error
 
 type PostgresDatabase struct {
+	sync.Mutex
 	client *sql.DB
 }
 func (db *PostgresDatabase) SaveMessage(id int, msg broker.Message, subject string){
-	_,err := db.client.Query("call save_message(?,?,?,?)", id, msg.Body, subject, int32(msg.Expiration))
+	fmt.Println("saving")
+	_,err := db.client.Query("call save_message($1,$2,$3,$4);", id, msg.Body, subject, int32(msg.Expiration))
 	if err!= nil{
-		log.Errorln(err)
+		fmt.Println(err)
 	}
 }
 func (db *PostgresDatabase) FetchMessage(id int, subject string)(broker.Message,error){
-	query := fmt.Sprintf("SELECT body, expiration_date from messages where messages.id=%d and messages.subject=%s",
+	query := fmt.Sprintf("SELECT body, expiration_date from messages where messages.id=%d and messages.subject=%s;",
 		id,subject)
 	rows, err := db.client.Query(query)
+	defer rows.Close()
 	if err!= nil{
 		return broker.Message{}, err
 	}else{
@@ -43,7 +47,7 @@ func (db *PostgresDatabase) FetchMessage(id int, subject string)(broker.Message,
 	}
 }
 func (db *PostgresDatabase) DeleteMessage(id int,subject string){
-	_, err:= db.client.Query("call delete_message(?,?)",id,subject)
+	_, err:= db.client.Query("call delete_message(?,?);",id,subject)
 	if err!=nil{
 		log.Errorln(err)
 	}
@@ -52,6 +56,7 @@ func (db *PostgresDatabase) DeleteMessage(id int,subject string){
 func GetPostgreDB()(Database,error){
 	var once sync.Once
 	once.Do(func() {
+		fmt.Println("new DB connection")
 		connString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 			os.Getenv("host"),os.Getenv("port"), os.Getenv("user"), os.Getenv("password"), os.Getenv("dbname"))
 		//fmt.Println(connString)
@@ -60,7 +65,7 @@ func GetPostgreDB()(Database,error){
 			connectionError=err
 			return
 		}
-		defer client.Close()
+		//defer client.Close()
 		err = client.Ping()
 		if err != nil {
 			connectionError=err
