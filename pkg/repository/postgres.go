@@ -43,7 +43,10 @@ func (db *PostgresDatabase) FetchMessage(id int, subject string)(broker.Message,
 	}
 }
 func (db *PostgresDatabase) DeleteMessage(id int,subject string){
-
+	_, err:= db.client.Query("call delete_message(?,?)",id,subject)
+	if err!=nil{
+		log.Errorln(err)
+	}
 }
 
 func GetPostgreDB()(Database,error){
@@ -63,6 +66,7 @@ func GetPostgreDB()(Database,error){
 			connectionError=err
 			return
 		}
+		fmt.Println("connected to postgres.")
 		postgresDB = &PostgresDatabase{client: client}
 	})
 	return postgresDB,connectionError
