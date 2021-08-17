@@ -9,7 +9,7 @@ type mapMemory struct{
 	sync.RWMutex
 	messages map[int]*broker.Message
 }
-func (m *mapMemory) SaveMessage(id int, msg broker.Message, subject string){
+func (m *mapMemory) SaveMessage(id int, msg broker.Message, subject string)error{
 	m.Lock()
 	defer m.Unlock()
 	if msg.Expiration != 0 {
@@ -17,6 +17,7 @@ func (m *mapMemory) SaveMessage(id int, msg broker.Message, subject string){
 	}else{
 		m.messages[id]=nil
 	}
+	return nil
 }
 func (m *mapMemory) FetchMessage(id int, subject string)(broker.Message,error){
 	m.RLock()
@@ -34,10 +35,11 @@ func (m *mapMemory) FetchMessage(id int, subject string)(broker.Message,error){
 	}
 	return fetchedMessage, nil
 }
-func (m *mapMemory) DeleteMessage(id int, subject string){
+func (m *mapMemory) DeleteMessage(id int, subject string)error{
 	m.Lock()
 	defer m.Unlock()
 	delete(m.messages,id)
+	return nil
 }
 
 func GetInMemoryDB()Database{
