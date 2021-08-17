@@ -20,7 +20,8 @@ type PostgresDatabase struct {
 }
 func (db *PostgresDatabase) SaveMessage(id int, msg broker.Message, subject string){
 	fmt.Println("saving")
-	_,err := db.client.Query("call save_message($1,$2,$3,$4);", id, msg.Body, subject, int32(msg.Expiration))
+	rows,err := db.client.Query("call save_message($1,$2,$3,$4);", id, msg.Body, subject, int32(msg.Expiration))
+	defer rows.Close()
 	if err!= nil{
 		fmt.Println(err)
 	}
@@ -47,7 +48,7 @@ func (db *PostgresDatabase) FetchMessage(id int, subject string)(broker.Message,
 	}
 }
 func (db *PostgresDatabase) DeleteMessage(id int,subject string){
-	_, err:= db.client.Query("call delete_message(?,?);",id,subject)
+	_, err:= db.client.Query("call delete_message($1,$2);",id,subject)
 	if err!=nil{
 		log.Errorln(err)
 	}
