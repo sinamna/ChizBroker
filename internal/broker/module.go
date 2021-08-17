@@ -3,28 +3,26 @@ package broker
 import (
 	"context"
 	"log"
-	"sync"
 	"therealbroker/pkg/broker"
 	"therealbroker/pkg/repository"
 )
 
 type Module struct {
-	sync.Mutex
 	closed bool
-	Topics map[string]*Topic
-	DB repository.Database
+	topicStorage *TopicStorage
+	//DB repository.Database
 }
 
 func NewModule() broker.Broker {
-	db, err:= repository.GetPostgreDB()
-	if err!=nil{
-		log.Fatalln(err)
-		return nil
-	}
+	//db, err:= repository.GetPostgreDB()
+	//if err!=nil{
+	//	log.Fatalln(err)
+	//	return nil
+	//}
 	return &Module{
 		closed: false,
-		Topics: map[string]*Topic{},
-		DB: db,
+		topicStorage: CreateTopicStorage(),
+		//DB: db,
 	}
 }
 
@@ -40,14 +38,19 @@ func (m *Module) Publish(ctx context.Context, subject string, msg broker.Message
 	if m.closed {
 		return -1, broker.ErrUnavailable
 	}
-	m.Lock()
-	topic, exists := m.Topics[subject]
+	//m.Lock()
+	//topic, exists := m.Topics[subject]
+	//if !exists {
+	//	topic = NewTopic(subject, m.DB)
+	//	m.Topics[subject]=topic
+	//}
+	//m.Unlock()
+	topic, exists:= m.topicStorage.GetTopic(subject)
 	if !exists {
-
-		topic = NewTopic(subject, m.DB)
-		m.Topics[subject]=topic
+		topic = m.topicStorage.CreateTopic(subject)
 	}
-	m.Unlock()
+	topic.SetDB(repository.GetInMemoryDB())
+
 	id := topic.PublishMessage(msg)
 	return id,nil
 }
@@ -57,13 +60,11 @@ func (m *Module) Subscribe(ctx context.Context, subject string) (<-chan broker.M
 		return nil, broker.ErrUnavailable
 	}
 	//channel := make(chan broker.Message)
-	m.Lock()
-	topic, exists := m.Topics[subject]
+	topic, exists:= m.topicStorage.GetTopic(subject)
 	if !exists {
-		topic = NewTopic(subject, m.DB)
-		m.Topics[subject]=topic
+		topic = m.topicStorage.CreateTopic(subject)
 	}
-	m.Unlock()
+	topic.SetDB(repository.GetInMemoryDB())
 
 	channel:= topic.RegisterSubscriber(ctx)
 	return channel, nil
@@ -73,10 +74,8 @@ func (m *Module) Fetch(ctx context.Context, subject string, id int) (broker.Mess
 	if m.closed {
 		return broker.Message{}, broker.ErrUnavailable
 	}
-	m.Lock()
-	topic, exists:= m.Topics[subject]
-	m.Unlock()
 
+	topic, exists:= m.topicStorage.GetTopic(subject)
 	if !exists{
 		log.Fatalln("invalid topic")
 	}
