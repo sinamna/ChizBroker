@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
-	"github.com/prometheus/common/log"
+	//"github.com/prometheus/common/log"
 	"os"
 	"sync"
 	"therealbroker/pkg/broker"
