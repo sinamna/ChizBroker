@@ -94,7 +94,10 @@ func (t *Topic) expireMessage(id int, expiration time.Duration) {
 		t.expireSignal <- id
 	}
 }
-func NewTopic(name string, db repository.Database) *Topic {
+func (t *Topic) SetDB (db repository.Database){
+	t.db=db
+}
+func NewTopic(name string) *Topic {
 	newTopic := &Topic{
 		Name:          name,
 		Subscribers:   map[int]*Subscriber{},
@@ -103,7 +106,7 @@ func NewTopic(name string, db repository.Database) *Topic {
 		subDeleteChan: make(chan *Subscriber, 3),
 		subAddChan:    make(chan *Subscriber),
 		msgPubChan:    make(chan *broker.Message),
-		db:            db,
+		//db:            db,
 	}
 	go newTopic.actionListener()
 	go newTopic.WatchForExpiration()
