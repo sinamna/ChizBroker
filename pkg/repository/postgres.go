@@ -15,16 +15,16 @@ var postgresDB *PostgresDatabase
 var connectionError error
 
 type PostgresDatabase struct {
-	sync.Mutex
 	client *sql.DB
 }
-func (db *PostgresDatabase) SaveMessage(id int, msg broker.Message, subject string){
+func (db *PostgresDatabase) SaveMessage(id int, msg broker.Message, subject string)error{
 	fmt.Println("saving")
 	rows,err := db.client.Query("call save_message($1,$2,$3,$4);", id, msg.Body, subject, int32(msg.Expiration))
 	defer rows.Close()
 	if err!= nil{
-		fmt.Println(err)
+		return err
 	}
+	return nil
 }
 func (db *PostgresDatabase) FetchMessage(id int, subject string)(broker.Message,error){
 	query := fmt.Sprintf("SELECT body, expiration_date from messages where messages.id=%d and messages.subject=%s;",
@@ -47,11 +47,13 @@ func (db *PostgresDatabase) FetchMessage(id int, subject string)(broker.Message,
 		return msg, nil
 	}
 }
-func (db *PostgresDatabase) DeleteMessage(id int,subject string){
-	_, err:= db.client.Query("call delete_message($1,$2);",id,subject)
+func (db *PostgresDatabase) DeleteMessage(id int,subject string)error{
+	rows, err:= db.client.Query("call delete_message($1,$2);",id,subject)
+	defer rows.Close()
 	if err!=nil{
-		log.Errorln(err)
+		return err
 	}
+	return nil
 }
 
 func GetPostgreDB()(Database,error){
