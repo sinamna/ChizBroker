@@ -2,6 +2,7 @@ package broker
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"therealbroker/pkg/broker"
 	"therealbroker/pkg/repository"
@@ -10,19 +11,19 @@ import (
 type Module struct {
 	closed bool
 	topicStorage *TopicStorage
-	//DB repository.Database
+	DB repository.Database
 }
 
 func NewModule() broker.Broker {
-	//db, err:= repository.GetPostgreDB()
-	//if err!=nil{
-	//	log.Fatalln(err)
-	//	return nil
-	//}
+	db, err:= repository.GetPostgreDB()
+	if err!=nil{
+		log.Fatalln(err)
+		return nil
+	}
 	return &Module{
 		closed: false,
 		topicStorage: CreateTopicStorage(),
-		//DB: db,
+		DB: db,
 	}
 }
 
@@ -49,7 +50,7 @@ func (m *Module) Publish(ctx context.Context, subject string, msg broker.Message
 	if !exists {
 		topic = m.topicStorage.CreateTopic(subject)
 	}
-	topic.SetDB(repository.GetInMemoryDB())
+	topic.SetDB(m.DB)
 
 	id := topic.PublishMessage(msg)
 	return id,nil
@@ -64,9 +65,10 @@ func (m *Module) Subscribe(ctx context.Context, subject string) (<-chan broker.M
 	if !exists {
 		topic = m.topicStorage.CreateTopic(subject)
 	}
-	topic.SetDB(repository.GetInMemoryDB())
+	topic.SetDB(m.DB)
 
 	channel:= topic.RegisterSubscriber(ctx)
+	fmt.Println(channel)
 	return channel, nil
 }
 
