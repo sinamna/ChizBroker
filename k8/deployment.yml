@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: sina-broker-container
-          image: dockerproxy.bale.ai/sinamna/bale_broker:v11
+          image: dockerproxy.bale.ai/sinamna/bale_broker:v14
           resources:
             requests:
               memory: "512Mi"
@@ -30,4 +30,7 @@ spec:
               containerPort: 8086
             - name: prometheus
               containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: sina-db-config
   replicas: 1
