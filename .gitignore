@@ -4,3 +4,4 @@ cpu.pprof
 mem.pprof
 trace.out
 .env
+k8/sinaDbConfig.yml
