@@ -2,7 +2,13 @@ package broker
 
 import (
 	"context"
-	"github.com/prometheus/common/log"
+	"fmt"
+
+	//"fmt"
+	//"log"
+
+	//"fmt"
+	//"github.com/prometheus/common/log"
 	"therealbroker/pkg/repository"
 
 	//"fmt"
@@ -33,13 +39,16 @@ func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
 }
 
 func (t *Topic) PublishMessage(msg broker.Message) int {
-	messageId := MessageID.GetID()
-	err := t.db.SaveMessage(messageId, msg, t.Name)
-	if err != nil {
-		log.Errorln(err)
+	Id := MessageID.GetID()
+	if msg.Expiration != 0 {
+		 err := t.db.SaveMessage(Id, msg, t.Name)
+		if err != nil {
+			//fmt.Printf("%#v %s\n",msg, t.Name)
+			fmt.Println(err)
+		}
 	}
 	t.msgPubChan <- &msg
-	return messageId
+	return Id
 }
 func (t *Topic) actionListener() {
 	for {
