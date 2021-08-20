@@ -18,20 +18,21 @@ type PostgresDatabase struct {
 	client *sql.DB
 }
 
-func (db *PostgresDatabase) SaveMessage(id int, msg broker.Message, subject string) error {
+func (db *PostgresDatabase) SaveMessage(id int, msg broker.Message, subject string)  {
 	//rows,err := db.client.Query("call save_message($1,$2,$3,$4);", id, msg.Body, subject, int32(msg.Expiration))
 	query := fmt.Sprintf(`INSERT INTO messages(id, subject, body, expiration_date)VALUES (%d, '%s', '%s', %v);`,
 		id, msg.Body, subject, int32(msg.Expiration))
 	//fmt.Println(query)
-	rows, err := db.client.Query(query)
+	_, err := db.client.Exec(query)
 	if err != nil {
-		//fmt.Println(err)
-		return err
+		fmt.Println(err)
+		return
+		//return err
 	}
-	rows.Close()
+	//rows.Close()
 	fmt.Println("saved")
 
-	return nil
+	//return nil
 }
 func (db *PostgresDatabase) FetchMessage(id int, subject string) (broker.Message, error) {
 	query := fmt.Sprintf("SELECT body, expiration_date from messages where messages.id=%d and messages.subject=%s;",
@@ -55,22 +56,23 @@ func (db *PostgresDatabase) FetchMessage(id int, subject string) (broker.Message
 	return msg, nil
 
 }
-func (db *PostgresDatabase) DeleteMessage(id int, subject string) error {
+func (db *PostgresDatabase) DeleteMessage(id int, subject string)  {
 	query := fmt.Sprintf(`DELETE FROM messages WHERE messages.id=%d and messages.subject='%s';`, id, subject)
-	rows, err := db.client.Query(query)
+	_, err := db.client.Exec(query)
 
 	if err != nil {
-		return err
+		fmt.Println(err)
+		return
 	}
-	rows.Close()
-	return nil
+	//rows.Close()
+	//return nil
 }
 
 func GetPostgreDB() (Database, error) {
 	var once sync.Once
 	once.Do(func() {
 		connString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-			os.Getenv("HOST"), os.Getenv("PORT"), os.Getenv("USER"), os.Getenv("PASSWORD"), os.Getenv("DB"))
+			os.Getenv("HOST"), os.Getenv("PORT"), os.Getenv("PUSER"), os.Getenv("PASSWORD"), os.Getenv("DB"))
 		//fmt.Println(connString)
 		client, err := sql.Open("postgres", connString)
 		if err != nil {
