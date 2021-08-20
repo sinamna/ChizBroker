@@ -22,10 +22,14 @@ func main() {
 	counter:=0
 	for {
 		func() {
-			c.Publish(context.Background(), &pb.PublishRequest{
+			_, err := c.Publish(context.Background(), &pb.PublishRequest{
 				Subject: "test",
-				Body:    []byte(fmt.Sprint(counter)),
+				Body:    []byte("bruh"),
+				ExpirationSeconds: 10,
 			})
+			if err != nil {
+				fmt.Println(err)
+			}
 			counter++
 			fmt.Println(counter,"sent")
 			ctx := context.WithValue(context.Background(), "a", "b")
