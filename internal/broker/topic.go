@@ -41,7 +41,7 @@ func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
 func (t *Topic) PublishMessage(msg broker.Message) int {
 	Id := MessageID.GetID()
 	if msg.Expiration != 0 {
-		t.db.SaveMessage(Id, msg, t.Name)
+		go t.db.SaveMessage(Id, msg, t.Name)
 		//if err != nil {
 		//	//fmt.Printf("%#v %s\n",msg, t.Name)
 		//	fmt.Println(err)
