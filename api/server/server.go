@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	pb "therealbroker/api/proto"
@@ -20,7 +21,7 @@ func(s Server) Publish(ctx context.Context,publishReq *pb.PublishRequest) (*pb.P
 	metric.MethodCalls.WithLabelValues("publish").Inc()
 	currentTime := time.Now()
 	defer metric.MethodDuration.WithLabelValues("publish").Observe(float64(time.Since(currentTime).Nanoseconds()))
-
+	//fmt.Println(publishReq)
 	message:= broker.Message{
 		Body: string(publishReq.GetBody()),
 		Expiration: time.Duration(publishReq.ExpirationSeconds),
