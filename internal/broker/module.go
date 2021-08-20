@@ -2,7 +2,7 @@ package broker
 
 import (
 	"context"
-	"fmt"
+	//"fmt"
 	"log"
 	"therealbroker/pkg/broker"
 	"therealbroker/pkg/repository"
@@ -68,7 +68,6 @@ func (m *Module) Subscribe(ctx context.Context, subject string) (<-chan broker.M
 	topic.SetDB(m.DB)
 
 	channel:= topic.RegisterSubscriber(ctx)
-	fmt.Println(channel)
 	return channel, nil
 }
 

@@ -3,6 +3,7 @@ package broker
 import (
 	"context"
 	"fmt"
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"sync"
@@ -18,6 +19,10 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		fmt.Println("couldn't load file")
+	}
 	rand.Seed(time.Now().Unix())
 	service = NewModule()
 	m.Run()
