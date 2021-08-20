@@ -21,7 +21,7 @@ type PostgresDatabase struct {
 func (db *PostgresDatabase) SaveMessage(id int, msg broker.Message, subject string)  {
 	//rows,err := db.client.Query("call save_message($1,$2,$3,$4);", id, msg.Body, subject, int32(msg.Expiration))
 	query := fmt.Sprintf(`INSERT INTO messages(id, subject, body, expiration_date)VALUES (%d, '%s', '%s', %v);`,
-		id, msg.Body, subject, int32(msg.Expiration))
+		id, subject, msg.Body, int32(msg.Expiration))
 	//fmt.Println(query)
 	_, err := db.client.Exec(query)
 	if err != nil {
