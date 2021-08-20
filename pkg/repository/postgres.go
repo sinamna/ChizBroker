@@ -19,16 +19,18 @@ type PostgresDatabase struct {
 }
 
 func (db *PostgresDatabase) SaveMessage(id int, msg broker.Message, subject string) error {
-	fmt.Println("saving")
 	//rows,err := db.client.Query("call save_message($1,$2,$3,$4);", id, msg.Body, subject, int32(msg.Expiration))
 	query := fmt.Sprintf(`INSERT INTO messages(id, subject, body, expiration_date)VALUES (%d, '%s', '%s', %v);`,
 		id, msg.Body, subject, int32(msg.Expiration))
 	//fmt.Println(query)
 	rows, err := db.client.Query(query)
 	if err != nil {
+		//fmt.Println(err)
 		return err
 	}
 	rows.Close()
+	fmt.Println("saved")
+
 	return nil
 }
 func (db *PostgresDatabase) FetchMessage(id int, subject string) (broker.Message, error) {
@@ -87,6 +89,7 @@ func GetPostgreDB() (Database, error) {
 			connectionError = err
 			return
 		}
+		client.SetMaxOpenConns(90)
 		postgresDB = &PostgresDatabase{client: client}
 	})
 	return postgresDB, connectionError
