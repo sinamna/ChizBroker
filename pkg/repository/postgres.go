@@ -89,6 +89,11 @@ func GetPostgreDB() (Database, error) {
 			connectionError = err
 			return
 		}
+		err = createIndex(client)
+		if err != nil {
+			connectionError = err
+			return
+		}
 		client.SetMaxOpenConns(90)
 		postgresDB = &PostgresDatabase{client: client}
 	})
@@ -107,6 +112,14 @@ func createTable(client *sql.DB) error {
 `
 	_, err := client.Exec(table)
 	if err != nil {
+		return err
+	}
+	return nil
+}
+func createIndex(client *sql.DB) error {
+	command := `CREATE INDEX IF NOT EXISTS idx_id_subject on messages (id,subject)`
+	_,err := client.Exec(command)
+	if err!= nil{
 		return err
 	}
 	return nil
