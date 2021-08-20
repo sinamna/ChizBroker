@@ -40,9 +40,9 @@ func main() {
 			fmt.Println(err)
 		}
 	}()
-	go func() {
-		http.ListenAndServe(":8080",nil)
-	}()
+	//go func() {
+	//	http.ListenAndServe(":8080",nil)
+	//}()
 	lis, err := net.Listen("tcp", ":8086")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
