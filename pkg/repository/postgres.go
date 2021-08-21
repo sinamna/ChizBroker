@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
+	//"strconv"
+
 	//"github.com/prometheus/common/log"
 	"os"
 	"sync"
@@ -18,24 +20,22 @@ type PostgresDatabase struct {
 	client *sql.DB
 }
 
-func (db *PostgresDatabase) SaveMessage(id int, msg broker.Message, subject string)  {
-	//rows,err := db.client.Query("call save_message($1,$2,$3,$4);", id, msg.Body, subject, int32(msg.Expiration))
-	query := fmt.Sprintf(`INSERT INTO messages(id, subject, body, expiration_date)VALUES (%d, '%s', '%s', %v);`,
-		id, subject, msg.Body, int32(msg.Expiration))
-	//fmt.Println(query)
-	_, err := db.client.Exec(query)
+func (db *PostgresDatabase) SaveMessage (msg broker.Message, subject string) int{
+
+	query := `INSERT INTO messages(id, subject, body, expiration_date)
+	VALUES (DEFAULT, $1, $2, $3) RETURNING id;`
+	stmt, err := db.client.Prepare(query)
+	var insertedID int
+	err = stmt.QueryRow(subject, msg.Body, int32(msg.Expiration)).Scan(&insertedID)
 	if err != nil {
 		fmt.Println(err)
-		return
-		//return err
+		return insertedID
 	}
-	//rows.Close()
-	fmt.Println("saved")
-
-	//return nil
+	//fmt.Println(insertedID)
+	return insertedID
 }
 func (db *PostgresDatabase) FetchMessage(id int, subject string) (broker.Message, error) {
-	query := fmt.Sprintf("SELECT body, expiration_date from messages where messages.id=%d and messages.subject=%s;",
+	query := fmt.Sprintf("SELECT body, expiration_date from messages where messages.id=%d and messages.subject='%s';",
 		id, subject)
 	rows, err := db.client.Query(query)
 
@@ -56,7 +56,7 @@ func (db *PostgresDatabase) FetchMessage(id int, subject string) (broker.Message
 	return msg, nil
 
 }
-func (db *PostgresDatabase) DeleteMessage(id int, subject string)  {
+func (db *PostgresDatabase) DeleteMessage(id int, subject string) {
 	query := fmt.Sprintf(`DELETE FROM messages WHERE messages.id=%d and messages.subject='%s';`, id, subject)
 	_, err := db.client.Exec(query)
 
@@ -72,7 +72,7 @@ func GetPostgreDB() (Database, error) {
 	var once sync.Once
 	once.Do(func() {
 		connString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-			os.Getenv("HOST"), os.Getenv("PORT"), os.Getenv("USER"), os.Getenv("PASSWORD"), os.Getenv("DB"))
+			os.Getenv("HOST"), os.Getenv("PORT"), os.Getenv("PUSER"), os.Getenv("PASSWORD"), os.Getenv("DB"))
 		//fmt.Println(connString)
 		client, err := sql.Open("postgres", connString)
 		if err != nil {
@@ -96,7 +96,7 @@ func GetPostgreDB() (Database, error) {
 			connectionError = err
 			return
 		}
-		client.SetMaxOpenConns(90)
+		client.SetMaxOpenConns(95)
 		postgresDB = &PostgresDatabase{client: client}
 	})
 	return postgresDB, connectionError
@@ -105,11 +105,11 @@ func GetPostgreDB() (Database, error) {
 func createTable(client *sql.DB) error {
 	table := `
 	CREATE TABLE IF NOT EXISTS messages (
-		id integer not null,
+		id serial,
 		subject varchar(255) not null,
-		body varchar(255) not null,
+		body varchar(255) ,
 		expiration_date bigint not null,
-		primary key(id)
+		primary key(id, subject)
 );
 `
 	_, err := client.Exec(table)
@@ -120,8 +120,8 @@ func createTable(client *sql.DB) error {
 }
 func createIndex(client *sql.DB) error {
 	command := `CREATE INDEX IF NOT EXISTS idx_id_subject on messages (id,subject)`
-	_,err := client.Exec(command)
-	if err!= nil{
+	_, err := client.Exec(command)
+	if err != nil {
 		return err
 	}
 	return nil
