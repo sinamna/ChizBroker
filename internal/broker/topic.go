@@ -38,7 +38,9 @@ func (t *Topic) PublishMessage(msg broker.Message) int {
 	id = -1
 	if msg.Expiration != 0 {
 		id = t.db.SaveMessage(msg, t.Name)
-		go t.expireMessage(id,msg.Expiration*time.Second)
+		if id != -1{
+			go t.expireMessage(id,msg.Expiration)
+		}
 	}
 	t.msgPubChan <- &msg
 	return id
