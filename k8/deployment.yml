@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: sina-broker-container
-          image: dockerproxy.bale.ai/sinamna/bale_broker:v17
+          image: dockerproxy.bale.ai/sinamna/bale_broker:v19
           resources:
             requests:
               memory: "512Mi"
