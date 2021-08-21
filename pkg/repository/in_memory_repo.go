@@ -41,9 +41,9 @@ func (m *mapMemory) DeleteMessage(id int, subject string){
 	delete(m.messages,id)
 	//return /
 }
-
-func GetInMemoryDB()Database{
-	return &mapMemory{
-		messages: map[int]*broker.Message{},
-	}
-}
+//
+//func GetInMemoryDB()Database{
+//	return &mapMemory{
+//		messages: map[int]*broker.Message{},
+//	}
+//}
