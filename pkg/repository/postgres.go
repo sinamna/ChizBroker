@@ -21,17 +21,14 @@ type PostgresDatabase struct {
 }
 
 func (db *PostgresDatabase) SaveMessage (msg broker.Message, subject string) int{
-
-	query := `INSERT INTO messages(id, subject, body, expiration_date)
-	VALUES (DEFAULT, $1, $2, $3) RETURNING id;`
-	stmt, err := db.client.Prepare(query)
+	//fmt.Println("msg:",msg)
 	var insertedID int
-	err = stmt.QueryRow(subject, msg.Body, int32(msg.Expiration)).Scan(&insertedID)
+	err := db.client.QueryRow(`INSERT INTO messages(id, subject, body, expiration_date) VALUES (DEFAULT, $1, $2, $3) RETURNING id;`,subject, msg.Body, int32(msg.Expiration)).Scan(&insertedID)
 	if err != nil {
-		fmt.Println(err)
-		return insertedID
+		fmt.Println("saving error:",err)
+		return -1
 	}
-	//fmt.Println(insertedID)
+	//fmt.Println("saved")
 	return insertedID
 }
 func (db *PostgresDatabase) FetchMessage(id int, subject string) (broker.Message, error) {
@@ -64,6 +61,7 @@ func (db *PostgresDatabase) DeleteMessage(id int, subject string) {
 		fmt.Println(err)
 		return
 	}
+	//fmt.Println("deleted")
 	//rows.Close()
 	//return nil
 }
@@ -96,7 +94,7 @@ func GetPostgreDB() (Database, error) {
 			connectionError = err
 			return
 		}
-		client.SetMaxOpenConns(95)
+		client.SetMaxOpenConns(90)
 		postgresDB = &PostgresDatabase{client: client}
 	})
 	return postgresDB, connectionError
