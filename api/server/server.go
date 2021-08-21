@@ -24,7 +24,7 @@ func(s Server) Publish(ctx context.Context,publishReq *pb.PublishRequest) (*pb.P
 	//fmt.Println(publishReq)
 	message:= broker.Message{
 		Body: string(publishReq.GetBody()),
-		Expiration: time.Duration(publishReq.ExpirationSeconds),
+		Expiration: time.Duration(publishReq.ExpirationSeconds)*time.Second,
 	}
 	messageId, err := s.broker.Publish(ctx,publishReq.GetSubject(),message)
 	if err != nil {
