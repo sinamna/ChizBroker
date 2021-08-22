@@ -36,7 +36,7 @@ func main() {
 			ch, _ := c.Subscribe(ctx, &pb.SubscribeRequest{Subject: "test"})
 			go func() {
 				response, _ := ch.Recv()
-				fmt.Println(response.GetBody())
+				fmt.Println(response)
 			}()
 			//time.Sleep(time.Second)
 		}()
