@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
+	"strings"
+
 	//"strconv"
 
 	//"github.com/prometheus/common/log"
@@ -17,18 +19,23 @@ var postgresDB *PostgresDatabase
 var connectionError error
 
 type PostgresDatabase struct {
-	client *sql.DB
+	sync.Mutex
+	client         *sql.DB
+	addMessages    []string
+	deleteMessages []string
 }
 
-func (db *PostgresDatabase) SaveMessage (msg broker.Message, subject string) int{
-	//fmt.Println("msg:",msg)
+func (db *PostgresDatabase) SaveMessage(msg broker.Message, subject string) int {
+	query := fmt.Sprintf(`INSERT INTO messages(id, subject, body, expiration_date) VALUES (DEFAULT, '%s', '%s', %v) RETURNING id;`,subject, msg.Body, int32(msg.Expiration))
 	var insertedID int
-	err := db.client.QueryRow(`INSERT INTO messages(id, subject, body, expiration_date) VALUES (DEFAULT, $1, $2, $3) RETURNING id;`,subject, msg.Body, int32(msg.Expiration)).Scan(&insertedID)
+	row, err := db.client.Query(query)
+	row.Next()
+	row.Scan(&insertedID)
 	if err != nil {
-		fmt.Println("saving error:",err)
+		fmt.Println("saving error:", err)
 		return -1
 	}
-	//fmt.Println("saved")
+	row.Close()
 	return insertedID
 }
 func (db *PostgresDatabase) FetchMessage(id int, subject string) (broker.Message, error) {
@@ -54,18 +61,27 @@ func (db *PostgresDatabase) FetchMessage(id int, subject string) (broker.Message
 
 }
 func (db *PostgresDatabase) DeleteMessage(id int, subject string) {
-	query := fmt.Sprintf(`DELETE FROM messages WHERE messages.id=%d and messages.subject='%s';`, id, subject)
-	_, err := db.client.Exec(query)
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	//fmt.Println("deleted")
-	//rows.Close()
-	//return nil
+	db.Lock()
+	db.deleteMessages = append(db.deleteMessages,fmt.Sprintf("(id,subject)=(%d,'%s')",id,subject))
+	db.Unlock()
 }
-
+func (db *PostgresDatabase) batchOperationHandler(ticker *time.Ticker){
+	for {
+		select {
+		case <- ticker.C:
+			db.Lock()
+			if len(db.deleteMessages) != 0{
+				query := `DELETE FROM public.messages WHERE ` + strings.Join(db.deleteMessages," or ")+";"
+				db.deleteMessages = db.deleteMessages[:0]
+				_,err := db.client.Exec(query)
+				if err!= nil{
+					fmt.Println(err)
+				}
+			}
+			db.Unlock()
+		}
+	}
+}
 func GetPostgreDB() (Database, error) {
 	var once sync.Once
 	once.Do(func() {
@@ -95,7 +111,13 @@ func GetPostgreDB() (Database, error) {
 			return
 		}
 		client.SetMaxOpenConns(90)
-		postgresDB = &PostgresDatabase{client: client}
+		postgresDB = &PostgresDatabase{
+			client:         client,
+			addMessages:    make([]string, 0),
+			deleteMessages: make([]string, 0),
+		}
+		ticker := time.NewTicker(2 * time.Second)
+		go postgresDB.batchOperationHandler(ticker)
 	})
 	return postgresDB, connectionError
 }
