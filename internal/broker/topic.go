@@ -38,8 +38,8 @@ func (t *Topic) PublishMessage(msg broker.Message) int {
 	id = -1
 	if msg.Expiration != 0 {
 		id = t.db.SaveMessage(msg, t.Name)
-		if id != -1{
-			go t.expireMessage(id,msg.Expiration)
+		if id != -1 {
+			go t.expireMessage(id, msg.Expiration)
 		}
 	}
 	t.msgPubChan <- &msg
@@ -48,6 +48,8 @@ func (t *Topic) PublishMessage(msg broker.Message) int {
 func (t *Topic) actionListener() {
 	for {
 		select {
+		case id := <-t.expireSignal:
+			go t.db.DeleteMessage(id, t.Name)
 		case newSub := <-t.subAddChan:
 			t.Subscribers[newSub.Id] = newSub
 		case subscriber := <-t.subDeleteChan:
@@ -87,23 +89,20 @@ func (t *Topic) Fetch(id int) (broker.Message, error) {
 	}
 	return fetchedMessage, nil
 }
-func (t *Topic) WatchForExpiration() {
-	for {
-		select {
-		case id := <-t.expireSignal:
-			go t.db.DeleteMessage(id,t.Name)
-		}
-	}
-
-}
+//func (t *Topic) WatchForExpiration() {
+//	for {
+//		select {}
+//	}
+//
+//}
 func (t *Topic) expireMessage(id int, expiration time.Duration) {
 	select {
 	case <-time.After(expiration):
 		t.expireSignal <- id
 	}
 }
-func (t *Topic) SetDB (db repository.Database){
-	t.db=db
+func (t *Topic) SetDB(db repository.Database) {
+	t.db = db
 }
 func NewTopic(name string) *Topic {
 	newTopic := &Topic{
@@ -117,7 +116,7 @@ func NewTopic(name string) *Topic {
 		//db:            db,
 	}
 	go newTopic.actionListener()
-	go newTopic.WatchForExpiration()
+	//go newTopic.WatchForExpiration()
 	return newTopic
 }
 
