@@ -2,14 +2,13 @@ package broker
 
 import (
 	"context"
-	"sync"
 	"therealbroker/pkg/broker"
 )
 
 var subscriberId = AutoIncId{id: 1}
 
 type Subscriber struct {
-	sync.Mutex
+	//sync.Mutex
 	Id              int
 	Channel         chan broker.Message
 	Ctx             context.Context
@@ -35,9 +34,7 @@ func CreateNewSubscriber(ctx context.Context, ch chan broker.Message, unSubSigna
 		Channel:         ch,
 		Ctx:             ctx,
 		unSubSignal:     unSubSignal,
-
 		RegisterChannel: make(chan *broker.Message),
-
 	}
 	go newSub.SendMessages()
 	return newSub
