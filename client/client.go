@@ -20,13 +20,16 @@ func main() {
 	defer conn.Close()
 	c := pb.NewBrokerClient(conn)
 	counter:=0
+	ids := make([]int, 0)
 	for {
 		func() {
-			_, err := c.Publish(context.Background(), &pb.PublishRequest{
+			id, err := c.Publish(context.Background(), &pb.PublishRequest{
 				Subject: "test",
 				Body:    []byte("bruh"),
 				ExpirationSeconds: 10,
 			})
+			fmt.Println(id)
+			ids=append(ids, int(id.Id))
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -35,8 +38,11 @@ func main() {
 			ctx := context.WithValue(context.Background(), "a", "b")
 			ch, _ := c.Subscribe(ctx, &pb.SubscribeRequest{Subject: "test"})
 			go func() {
-				response, _ := ch.Recv()
-				fmt.Println(response)
+				_, err := ch.Recv()
+				//fmt.Println(response)
+				if err!= nil{
+					fmt.Println(err)
+				}
 			}()
 			//time.Sleep(time.Second)
 		}()
