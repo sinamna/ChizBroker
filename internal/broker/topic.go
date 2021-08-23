@@ -2,6 +2,8 @@ package broker
 
 import (
 	"context"
+	"fmt"
+
 	//"github.com/prometheus/common/log"
 	"therealbroker/pkg/repository"
 
@@ -18,7 +20,7 @@ type Topic struct {
 	Name          string
 	db            repository.Database
 	Subscribers   map[int]*Subscriber
-	Messages      map[int]*broker.Message
+	//Messages      map[int]*broker.Message
 	expireSignal  chan int
 	subDeleteChan chan *Subscriber
 	subAddChan    chan *Subscriber
@@ -50,6 +52,7 @@ func (t *Topic) actionListener() {
 		select {
 		case id := <-t.expireSignal:
 			go t.db.DeleteMessage(id, t.Name)
+			//fmt.Println("deleting")
 		case newSub := <-t.subAddChan:
 			t.Subscribers[newSub.Id] = newSub
 		case subscriber := <-t.subDeleteChan:
@@ -72,20 +75,25 @@ func (t *Topic) actionListener() {
 }
 
 func (t *Topic) Fetch(id int) (broker.Message, error) {
-	var fetchedMessage broker.Message
+	//var fetchedMessage broker.Message
 
-	t.Lock()
-	defer t.Unlock()
+	//t.Lock()
+	//defer t.Unlock()
 
-	message, existed := t.Messages[id]
-	if !existed {
-		return fetchedMessage, broker.ErrInvalidID
-	} else {
-		if message == nil {
-			return broker.Message{}, broker.ErrExpiredID
-		} else {
-			fetchedMessage = *message
-		}
+	//message, existed := t.Messages[id]
+	//if !existed {
+	//	return fetchedMessage, broker.ErrInvalidID
+	//} else {
+	//	if message == nil {
+	//		return broker.Message{}, broker.ErrExpiredID
+	//	} else {
+	//		fetchedMessage = *message
+	//	}
+	//}
+	fetchedMessage, err:= t.db.FetchMessage(id,t.Name)
+	if err!=nil{
+		fmt.Println("error in fetching: ",err)
+		return broker.Message{},broker.ErrInvalidID
 	}
 	return fetchedMessage, nil
 }
@@ -108,7 +116,7 @@ func NewTopic(name string) *Topic {
 	newTopic := &Topic{
 		Name:          name,
 		Subscribers:   map[int]*Subscriber{},
-		Messages:      map[int]*broker.Message{},
+		//Messages:      map[int]*broker.Message{},
 		expireSignal:  make(chan int, 3),
 		subDeleteChan: make(chan *Subscriber, 3),
 		subAddChan:    make(chan *Subscriber),
