@@ -2,6 +2,8 @@ package broker
 
 import (
 	"context"
+	"fmt"
+
 	//"fmt"
 	"sync"
 
@@ -25,6 +27,7 @@ func NewModule() broker.Broker {
 		log.Fatalln(err)
 		return nil
 	}
+	fmt.Println("connected to postgres.")
 	return &Module{
 		closed: false,
 		//topics: map[string]*Topic{},
