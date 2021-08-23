@@ -26,7 +26,7 @@ type PostgresDatabase struct {
 }
 
 func (db *PostgresDatabase) SaveMessage(msg broker.Message, subject string) int {
-	query := fmt.Sprintf(`INSERT INTO messages(id, subject, body, expiration_date) VALUES (DEFAULT, '%s', '%s', %v) RETURNING id;`,subject, msg.Body, int32(msg.Expiration))
+	query := fmt.Sprintf(`INSERT INTO messages(id, subject, body, expiration_date) VALUES (DEFAULT, '%s', '%s', %v) RETURNING id;`,subject, msg.Body, int64(msg.Expiration))
 	var insertedID int
 	row, err := db.client.Query(query)
 	row.Next()
@@ -44,19 +44,26 @@ func (db *PostgresDatabase) FetchMessage(id int, subject string) (broker.Message
 	rows, err := db.client.Query(query)
 
 	if err != nil {
+		fmt.Println("fetch: returned from query")
 		return broker.Message{}, err
 	}
 	var body string
-	var expirationDate int32
-	err = rows.Scan(&body, &expirationDate)
-	if err != nil {
-		return broker.Message{}, err
+	var expirationDate int64
+	for rows.Next() {
+		err = rows.Scan(&body, &expirationDate)
+		if err != nil {
+			fmt.Println("fetch: scan error")
+			return broker.Message{}, err
+		}
+	}
+	if err := rows.Err();err!=nil{
+		fmt.Println("rows err: ",err)
 	}
 	msg := broker.Message{
 		Body:       body,
 		Expiration: time.Duration(expirationDate),
 	}
-	rows.Close()
+	//rows.Close()
 	return msg, nil
 
 }
@@ -99,7 +106,6 @@ func GetPostgreDB() (Database, error) {
 			connectionError = err
 			return
 		}
-		fmt.Println("connected to postgres.")
 		err = createTable(client)
 		if err != nil {
 			connectionError = err
@@ -111,12 +117,14 @@ func GetPostgreDB() (Database, error) {
 			return
 		}
 		client.SetMaxOpenConns(90)
+		client.SetMaxIdleConns(45)
+		client.SetConnMaxIdleTime(time.Second*10)
 		postgresDB = &PostgresDatabase{
 			client:         client,
 			addMessages:    make([]string, 0),
 			deleteMessages: make([]string, 0),
 		}
-		ticker := time.NewTicker(2 * time.Second)
+		ticker := time.NewTicker(1 * time.Second)
 		go postgresDB.batchOperationHandler(ticker)
 	})
 	return postgresDB, connectionError
