@@ -264,7 +264,7 @@ func TestConcurrentPublishShouldNotFail(t *testing.T) {
 }
 
 func TestDataRace(t *testing.T) {
-	duration := 500 * time.Millisecond
+	duration := 5 * time.Second
 	ticker := time.NewTicker(duration)
 	defer ticker.Stop()
 	var wg sync.WaitGroup
@@ -303,24 +303,26 @@ func TestDataRace(t *testing.T) {
 			}
 		}
 	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
-		for {
-			select {
-			case <-ticker.C:
-				return
-
-			case id := <-ids:
-				_, err := service.Fetch(mainCtx, "ali", id)
-				assert.Nil(t, err)
-			}
-		}
-	}()
+	//
+	//wg.Add(1)
+	//go func() {
+	//	defer wg.Done()
+	//
+	//	for {
+	//		select {
+	//		case <-ticker.C:
+	//			return
+	//
+	//		case id := <-ids:
+	//			msg, err := service.Fetch(mainCtx, "ali", id)
+	//			fmt.Println(msg.Body,msg.Expiration)
+	//			assert.Nil(t, err)
+	//		}
+	//	}
+	//}()
 
 	wg.Wait()
+	fmt.Println("Done")
 }
 
 func BenchmarkPublish(b *testing.B) {
