@@ -7,4 +7,5 @@ Features:
 - handling up to 7k publish rpcs on a single node
 
 # Architecture
+![overall architecture](docs/Broker-Frame 1.jpg)
 
