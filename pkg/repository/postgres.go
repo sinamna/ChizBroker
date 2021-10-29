@@ -93,7 +93,7 @@ func GetPostgreDB() (Database, error) {
 	var once sync.Once
 	once.Do(func() {
 		connString := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-			os.Getenv("HOST"), os.Getenv("PORT"), os.Getenv("USER"), os.Getenv("PASSWORD"), os.Getenv("DB"))
+			os.Getenv("HOST"), os.Getenv("PORT"), os.Getenv("PUSER"), os.Getenv("PASSWORD"), os.Getenv("DB"))
 		//fmt.Println(connString)
 		client, err := sql.Open("postgres", connString)
 		if err != nil {

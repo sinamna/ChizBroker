@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
+
 	//"github.com/joho/godotenv"
 
 	//"github.com/joho/godotenv"
@@ -19,17 +21,12 @@ import (
 	_ "net/http/pprof"
 )
 
-// Main requirements:
-// 1. All tests should be passed
-// 2. Your logs should be accessible in Graylog
-// 3. Basic prometheus metrics ( latency, throughput, etc. ) should be implemented
-// 	  for every base functionality ( publish, subscribe etc. )
 
 func main() {
-	//err := godotenv.Load()
-	//if err != nil {
-	//	fmt.Println("couldn't load file")
-	//}
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("couldn't load file")
+	}
 
 	//defer profile.Start(profile.CPUProfile, profile.ProfilePath(".")).Stop()
 	//defer profile.Start(profile.MemProfile,profile.MemProfileRate(1), profile.ProfilePath(".")).Stop()
