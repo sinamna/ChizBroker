@@ -56,3 +56,5 @@ cd k8
 kubectl apply -f service.yml
 kubectl apply -f deployment.yml
 ```
+
+this project was part of Bale messenger's bootcamp 
