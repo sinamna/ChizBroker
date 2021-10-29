@@ -59,8 +59,9 @@ func (m *Module) Publish(ctx context.Context, subject string, msg broker.Message
 	topic, exists:= m.topicStorage.GetTopic(subject)
 	if !exists{
 		topic = m.topicStorage.CreateTopic(subject)
+		topic.SetDB(m.DB)
+
 	}
-	topic.SetDB(m.DB)
 
 	id := topic.PublishMessage(msg)
 	return id,nil
@@ -81,8 +82,9 @@ func (m *Module) Subscribe(ctx context.Context, subject string) (<-chan broker.M
 	topic, exists:= m.topicStorage.GetTopic(subject)
 	if !exists{
 		topic = m.topicStorage.CreateTopic(subject)
+		topic.SetDB(m.DB)
+
 	}
-	topic.SetDB(m.DB)
 
 	channel:= topic.RegisterSubscriber(ctx)
 	return channel, nil

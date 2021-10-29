@@ -28,7 +28,7 @@ type Topic struct {
 }
 
 func (t *Topic) RegisterSubscriber(ctx context.Context) chan broker.Message {
-	ch := make(chan broker.Message, 20)
+	ch := make(chan broker.Message,70)
 	newSub := CreateNewSubscriber(ctx, ch, t.subDeleteChan)
 	t.subAddChan <- newSub
 	return ch
@@ -39,12 +39,15 @@ func (t *Topic) PublishMessage(msg broker.Message) int {
 	var id int
 	id = -1
 	if msg.Expiration != 0 {
+		t.Lock()
 		id = t.db.SaveMessage(msg, t.Name)
+		t.Unlock()
 		if id != -1 {
 			go t.expireMessage(id, msg.Expiration)
 		}
 	}
 	t.msgPubChan <- &msg
+	//fmt.Println("message published ")
 	return id
 }
 func (t *Topic) actionListener() {
@@ -110,7 +113,9 @@ func (t *Topic) expireMessage(id int, expiration time.Duration) {
 	}
 }
 func (t *Topic) SetDB(db repository.Database) {
+	t.Lock()
 	t.db = db
+	t.Unlock()
 }
 func NewTopic(name string) *Topic {
 	newTopic := &Topic{

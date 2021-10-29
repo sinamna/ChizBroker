@@ -14,18 +14,21 @@ type Subscriber struct {
 	Ctx             context.Context
 	unSubSignal     chan *Subscriber
 	RegisterChannel chan *broker.Message
-
+	messages        []*broker.Message
 }
 
 func (s *Subscriber) SendMessages() {
 	for {
+
 		select {
 		case <-s.Ctx.Done():
 			go func() { s.unSubSignal <- s }()
 			return
 		case msg := <-s.RegisterChannel:
 			s.Channel<-*msg
+			//fmt.Println("message published")
 		}
+
 	}
 }
 func CreateNewSubscriber(ctx context.Context, ch chan broker.Message, unSubSignal chan *Subscriber) *Subscriber {
@@ -35,6 +38,7 @@ func CreateNewSubscriber(ctx context.Context, ch chan broker.Message, unSubSigna
 		Ctx:             ctx,
 		unSubSignal:     unSubSignal,
 		RegisterChannel: make(chan *broker.Message),
+		messages:        make([]*broker.Message, 0),
 	}
 	go newSub.SendMessages()
 	return newSub
