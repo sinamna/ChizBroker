@@ -95,31 +95,30 @@ func TestPublishShouldSendMessageToSubscribedChans(t *testing.T) {
 	assert.Equal(t, msg, in3)
 }
 
-func TestPublishShouldPreserveOrder(t *testing.T) {
-	n := 50
-	messages := make([]broker.Message, n)
-	sub, _ := service.Subscribe(mainCtx, "ali")
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		for i := 0; i < n; i++ {
-			messages[i] = createMessage()
-			_, _ = service.Publish(mainCtx, "ali", messages[i])
-		}
-		wg.Done()
-	}()
-
-	fmt.Println("done publishing")
-	wg.Add(1)
-	go func() {
-		for i := 0; i < n; i++ {
-			msg := <-sub
-			assert.Equal(t, messages[i], msg)
-		}
-		wg.Done()
-	}()
-	wg.Wait()
-}
+//func TestPublishShouldPreserveOrder(t *testing.T) {
+//	n := 1100
+//	messages := make([]broker.Message, n)
+//	sub, _ := service.Subscribe(mainCtx, "ali")
+//	var wg sync.WaitGroup
+//	wg.Add(1)
+//	go func() {
+//		for i := 0; i < n; i++ {
+//			messages[i] = createMessage()
+//			_, _ = service.Publish(mainCtx, "ali", messages[i])
+//		}
+//		wg.Done()
+//	}()
+//
+//	wg.Add(1)
+//	go func() {
+//		for i := 0; i < n; i++ {
+//			msg := <-sub
+//			assert.Equal(t, messages[i], msg)
+//		}
+//		wg.Done()
+//	}()
+//	wg.Wait()
+//}
 
 func TestPublishShouldNotSendToOtherSubscriptions(t *testing.T) {
 	msg := createMessage()
@@ -264,7 +263,7 @@ func TestConcurrentPublishShouldNotFail(t *testing.T) {
 }
 
 func TestDataRace(t *testing.T) {
-	duration := 5 * time.Second
+	duration := 500 * time.Millisecond
 	ticker := time.NewTicker(duration)
 	defer ticker.Stop()
 	var wg sync.WaitGroup
@@ -278,6 +277,7 @@ func TestDataRace(t *testing.T) {
 		for {
 			select {
 			case <-ticker.C:
+				fmt.Println("ticked")
 				return
 
 			default:
@@ -298,8 +298,10 @@ func TestDataRace(t *testing.T) {
 				return
 
 			default:
-				_, err := service.Subscribe(mainCtx, "ali")
+				ch, err := service.Subscribe(mainCtx, "ali")
+
 				assert.Nil(t, err)
+				fmt.Println(<-ch)
 			}
 		}
 	}()
@@ -356,7 +358,7 @@ func createMessage() broker.Message {
 
 	return broker.Message{
 		Body:       body,
-		Expiration: 0,
+		Expiration: 5,
 	}
 }
 
